@@ -10,7 +10,7 @@ setup(name='pytwain',
       description="TWAIN API for accessing scanners, cameras, etc on Windows",
       classifiers=[
           'Development Status :: 4 - Beta',
-          'Environment :: MS Windows',
+          'Environment :: Win32 (MS Windows)',
           'Intended Audience :: Developers',
           'License :: OSI Approved :: GNU General Public License (GPL)',
           'Natural Language :: English',
