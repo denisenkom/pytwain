@@ -2026,14 +2026,7 @@ class SourceManager(object):
                                    Manufacturer=Manufacturer.encode('utf8'),
                                    ProductFamily=ProductFamily.encode('utf8'),
                                    ProductName=ProductName.encode('utf8'))
-        rv = self._entry(self._app_id,
-                         None,
-                         DG_CONTROL,
-                         DAT_PARENT,
-                         MSG_OPENDSM,
-                         byref(c_void_p(self._hwnd)))
-        if rv != TWRC_SUCCESS:
-            raise excSMOpenFailed("[%s], return code %d" % (dsm_name, rv))
+        self._call(None, DG_CONTROL, DAT_PARENT, MSG_OPENDSM, byref(c_void_p(self._hwnd)))
         self._version2 = bool(self._app_id.SupportedGroups & DF_DSM2)
         if self._version2:
             entrypoint = TW_ENTRYPOINT(Size=sizeof(TW_ENTRYPOINT))
