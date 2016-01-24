@@ -2056,8 +2056,16 @@ class SourceManager(object):
         self._state = 'open'
         
     def __del__(self):
-        self.close()
-            
+        if self._state == 'open':
+            self._close_dsm()
+
+    def _close_dsm(self):
+        self._call(None,
+                   DG_CONTROL,
+                   DAT_PARENT,
+                   MSG_CLOSEDSM,
+                   byref(c_void_p(self._hwnd)))
+
     def close(self):
         '''This method is used to force the SourceManager to close down.
         It is provided for finer control than letting garbage collection drop the connections.
@@ -2065,13 +2073,9 @@ class SourceManager(object):
         while self._sources:
             self._sources.pop().close()
         if self._state == 'open':
-            self._call(None,
-                       DG_CONTROL,
-                       DAT_PARENT,
-                       MSG_CLOSEDSM,
-                       byref(c_void_p(self._hwnd)))
+            self._close_dsm()
             self._state = 'closed'
-            
+
     destroy = close
 
     def _call(self, dest_id, dg, dat, msg, buf, expected_returns=[]):
