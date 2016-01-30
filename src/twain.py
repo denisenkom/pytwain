@@ -1418,6 +1418,19 @@ if _is_windows():
     _twain1_free = _GlobalFree
     _twain1_lock = _GlobalLock
     _twain1_unlock = _GlobalUnlock
+else:
+    # Mac
+    def _twain1_alloc(size):
+        return ctypes.libc.malloc(size)
+
+    def _twain1_lock(handle):
+        return handle
+
+    def _twain1_unlock(handle):
+        pass
+
+    def _twain1_free(handle):
+        return ctypes.libc.free(handle)
 
 
 class Source(object):
@@ -2046,6 +2059,24 @@ class Source(object):
         return self.xfer_image_by_file()
 
 
+def _get_dsm(dsm_name=None):
+    if _is_windows():
+        try:
+            if dsm_name:
+                return ctypes.WinDLL(dsm_name)
+            else:
+                dsm_name = 'twaindsm.dll'
+                try:
+                    return ctypes.WinDLL(dsm_name)
+                except ctypes.WindowsError:
+                    dsm_name = 'twain_32.dll'
+                    return ctypes.WinDLL(dsm_name)
+        except ctypes.WindowsError as e:
+            raise excSMLoadFileFailed(e)
+    else:
+        return ctypes.CDLL('/System/Library/Frameworks/TWAIN.framework/TWAIN')
+
+
 class SourceManager(object):
     """Represents a Data Source Manager connection"""
     def __init__(self,
@@ -2086,31 +2117,22 @@ class SourceManager(object):
         self._cb = None
         self._state = 'closed'
         self._parent_window = parent_window
-        if hasattr(parent_window, 'winfo_id'):
-            # tk window
-            self._hwnd = parent_window.winfo_id()
-        elif hasattr(parent_window, 'GetHandle'):
-            # wx window
-            self._hwnd = parent_window.GetHandle()
-        elif hasattr(parent_window, 'window') and hasattr(parent_window.window, 'handle'):
-            # gtk window
-            self._hwnd = parent_window.window.handle
-        else:
-            self._hwnd = int(parent_window)
-        try:
-            if dsm_name:
-                twain_dll = WinDLL(dsm_name)
+        self._hwnd = 0
+        if _is_windows():
+            if hasattr(parent_window, 'winfo_id'):
+                # tk window
+                self._hwnd = parent_window.winfo_id()
+            elif hasattr(parent_window, 'GetHandle'):
+                # wx window
+                self._hwnd = parent_window.GetHandle()
+            elif hasattr(parent_window, 'window') and hasattr(parent_window.window, 'handle'):
+                # gtk window
+                self._hwnd = parent_window.window.handle
             else:
-                dsm_name = 'twaindsm.dll'
-                try:
-                    twain_dll = WinDLL(dsm_name)
-                except WindowsError:
-                    dsm_name = 'twain_32.dll'
-                    twain_dll = WinDLL(dsm_name)
-        except WindowsError as e:
-            raise excSMLoadFileFailed(e)
+                self._hwnd = int(parent_window)
+        twain_dll = _get_dsm(dsm_name)
         try:
-            self._entry = twain_dll[1]
+            self._entry = twain_dll['DSM_Entry']
         except AttributeError as e:
             raise excSMGetProcAddressFailed(e)
         self._entry.restype = c_uint16
@@ -2182,7 +2204,7 @@ class SourceManager(object):
             self._close_dsm()
             self._state = 'closed'
 
-    def _call(self, dest_id, dg, dat, msg, buf, expected_returns=[]):
+    def _call(self, dest_id, dg, dat, msg, buf, expected_returns=()):
         rv = self._entry(self._app_id, dest_id, dg, dat, msg, buf)
         if rv == TWRC_SUCCESS or rv in expected_returns:
             return rv
@@ -2193,7 +2215,7 @@ class SourceManager(object):
                              DG_CONTROL,
                              DAT_STATUS,
                              MSG_GET,
-                             byref(status));
+                             byref(status))
             if rv != TWRC_SUCCESS:
                 raise Exception('DG_CONTROL DAT_STATUS MSG_GET returned non success code, rv = %d' % rv)
             code = status.ConditionCode
