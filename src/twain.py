@@ -1044,37 +1044,56 @@ TWUN_PIXELS = 5
 TWUN_POINTS = 3
 TWUN_TWIPS = 4
 
+
 class TwainError(Exception):
     pass
 
+
 class excCapabilityFormatNotSupported(TwainError):
     pass
+
+
 class excDSTransferCancelled(TwainError):
     pass
+
+
 class excSMGetProcAddressFailed(TwainError):
     pass
+
+
 class excSMLoadFileFailed(TwainError):
     pass
+
+
 class excSMOpenFailed(TwainError):
     pass
+
 
 class excImageFormat(Exception):
     pass
 
+
 class excTWCC_BADCAP(TwainError):
     pass
+
+
 class excTWCC_BADDEST(Exception):
     pass
+
+
 class excTWCC_BADPROTOCOL(Exception):
     pass
+
 
 class excTWCC_BUMMER(Exception):
     """General failure.  Unload Source immediately."""
     pass
 
+
 class excTWCC_CAPBADOPERATION(Exception):
     """Operation (i.e., Get or Set)  not supported on capability."""
     pass
+
 
 class excTWCC_CAPSEQERROR(Exception):
     """Capability has dependencies on other capabilities and
@@ -1082,9 +1101,11 @@ class excTWCC_CAPSEQERROR(Exception):
     """
     pass
 
+
 class excTWCC_CAPUNSUPPORTED(Exception):
     """Capability not supported by Source."""
     pass
+
 
 class excTWCC_CHECKDEVICEONLINE(Exception):
     """Check the device status using CAP_DEVICEONLINE, this
@@ -1096,32 +1117,58 @@ class excTWCC_CHECKDEVICEONLINE(Exception):
     """
     pass
 
+
 class excTWCC_DENIED(Exception):
     pass
+
+
 class excTWCC_FILEEXISTS(Exception):
     pass
+
+
 class excTWCC_FILENOTFOUND(Exception):
     pass
+
+
 class excTWCC_FILEWRITEERROR(Exception):
     pass
+
+
 class excTWCC_MAXCONNECTIONS(Exception):
     pass
+
+
 class excTWCC_NODS(Exception):
     pass
+
+
 class excTWCC_NOTEMPTY(Exception):
     pass
+
+
 class excTWCC_OPERATIONERROR(Exception):
     pass
+
+
 class excTWCC_PAPERDOUBLEFEED(Exception):
     pass
+
+
 class excTWCC_PAPERJAM(Exception):
     pass
+
+
 class excTWCC_SEQERROR(Exception):
     pass
+
+
 class excTWCC_SUCCESS(Exception):
     pass
+
+
 class excTWCC_UNKNOWN(Exception):
     pass
+
 
 _ext_to_type = {'.bmp': TWFF_BMP,
                 '.jpg': TWFF_JFIF,
@@ -1131,15 +1178,18 @@ _ext_to_type = {'.bmp': TWFF_BMP,
                 '.tif': TWFF_TIFF,
                 }
 
+
 class CancelAll(Exception):
     """Exception used by callbacks to cancel remaining image transfers"""
     pass
+
 
 class CheckStatus(Exception):
     """This exception means that operation succeeded but user value was truncated
     to fit valid range
     """
     pass
+
 
 class _Image(object):
     def __init__(self, handle):
@@ -1156,7 +1206,8 @@ class _Image(object):
     def save(self, filepath):
         """Saves in-memory image to BMP file"""
         _dib_write(self._handle, filepath, self._lock, self._unlock)
-        
+
+
 def _float2fix(x):
     if x <= -2**15 - 1 and 2**15 + 1 <= x:
         raise Exception('Float value is out of range')
@@ -1165,20 +1216,24 @@ def _float2fix(x):
     frac = x & 0xffff
     return TW_FIX32(whole, frac)
 
+
 def _fix2float(x):
     return x.Whole + float(x.Frac) / 2**16 
+
 
 def _frame2tuple(frame):
     return (_fix2float(frame.Left),
             _fix2float(frame.Top),
             _fix2float(frame.Right),
             _fix2float(frame.Bottom))
-    
+
+
 def _tuple2frame(tup):
     return TW_FRAME(_float2fix(tup[0]),
                     _float2fix(tup[1]),
                     _float2fix(tup[2]),
                     _float2fix(tup[3]))
+
 
 class TW_CAPABILITY(Structure):
     _pack_ = 2
@@ -1186,15 +1241,18 @@ class TW_CAPABILITY(Structure):
                 ('ConType', c_uint16),
                 ('hContainer', c_void_p)]
 
+
 class TW_ONEVALUE(Structure):
     _pack_ = 2
     _fields_ = [('ItemType', c_uint16),
                 ('Item', c_uint32)]
-    
+
+
 class TW_FIX32(Structure):
     _pack_ = 2
     _fields_ = [('Whole', c_int16),
                 ('Frac', c_uint16)]
+
 
 class TW_FRAME(Structure):
     _pack_ = 2
@@ -1202,24 +1260,28 @@ class TW_FRAME(Structure):
                 ('Top', TW_FIX32),
                 ('Right', TW_FIX32),
                 ('Bottom', TW_FIX32)]
-    
+
+
 class TW_STATUS(Structure):
     _pack_ = 2
     _fields_ = [('ConditionCode', c_uint16), # Any TWCC_ constant
                 ('Data', c_uint16)]
-    
+
+
 class TW_IMAGELAYOUT(Structure):
     _pack_ = 2
     _fields_ = [('Frame', TW_FRAME), # Any TWCC_ constant
                 ('DocumentNumber', c_uint32),
                 ('PageNumber', c_uint32),
                 ('FrameNumber', c_uint32)]
-    
+
+
 class TW_USERINTERFACE(Structure):
     _pack_ = 2
     _fields_ = [('ShowUI', c_uint16),
                 ('ModalUI', c_uint16),
                 ('hParent', c_void_p)]
+
 
 class MSG(Structure):
     _pack_ = 8
@@ -1231,10 +1293,12 @@ class MSG(Structure):
                 ('pt_x', c_long),
                 ('pt_y', c_long)]
 
+
 class TW_EVENT(Structure):
     _pack_ = 2
     _fields_ = [('pEvent', c_void_p),
                 ('TWMessage', c_uint16)]
+
 
 class TW_VERSION(Structure):
     _pack_ = 2
@@ -1243,6 +1307,8 @@ class TW_VERSION(Structure):
                 ('Language', c_uint16),
                 ('Country', c_uint16),
                 ('Info', c_char * 34)]
+
+
 class TW_IDENTITY(Structure):
     _pack_ = 2
     _fields_ = [('Id', c_uint32),
@@ -1253,6 +1319,7 @@ class TW_IDENTITY(Structure):
                 ('Manufacturer', c_char * 34),
                 ('ProductFamily', c_char * 34),
                 ('ProductName', c_char * 34)]
+
 
 class TW_IMAGEINFO(Structure):
     _pack_ = 2
@@ -1267,10 +1334,12 @@ class TW_IMAGEINFO(Structure):
                 ('PixelType', c_int16),
                 ('Compression', c_uint16)]
 
+
 class TW_PENDINGXFERS(Structure):
     _pack_ = 2
     _fields_ = [('Count', c_uint16),
                 ('EOJ', c_uint32)]
+
 
 class TW_RANGE(Structure):
     _pack_ = 2
@@ -1281,17 +1350,20 @@ class TW_RANGE(Structure):
                 ('DefaultValue', c_uint32),
                 ('CurrentValue', c_uint32)]
 
+
 class TW_ENUMERATION(Structure):
     _pack_ = 2
     _fields_ = [('ItemType', c_uint16),
                 ('NumItems', c_uint32),
                 ('CurrentIndex', c_uint32),
                 ('DefaultIndex', c_uint32)]
-    
+
+
 class TW_ARRAY(Structure):
     _pack_ = 2
     _fields_ = [('ItemType', c_uint16),
                 ('NumItems', c_uint32)]
+
 
 class TW_SETUPFILEXFER(Structure):
     _pack_ = 2
@@ -1319,22 +1391,25 @@ class TW_ENTRYPOINT(Structure):
                 ('DSM_MemLock', FUNCTYPE(c_void_p, c_void_p)),
                 ('DSM_MemUnlock', FUNCTYPE(None, c_void_p))]
 
+
 _mapping = {TWTY_INT8: c_int8,
-           TWTY_UINT8: c_uint8,
-           TWTY_INT16: c_int16,
-           TWTY_UINT16: c_uint16,
-           TWTY_UINT32: c_uint32,
-           TWTY_INT32: c_int32,
-           TWTY_BOOL: c_uint16,
-           TWTY_FIX32: TW_FIX32,
-           TWTY_FRAME: TW_FRAME,
-           TWTY_STR32: c_char*34,
-           TWTY_STR64: c_char*66,
-           TWTY_STR128: c_char*130,
-           TWTY_STR255: c_char*255}
+            TWTY_UINT8: c_uint8,
+            TWTY_INT16: c_int16,
+            TWTY_UINT16: c_uint16,
+            TWTY_UINT32: c_uint32,
+            TWTY_INT32: c_int32,
+            TWTY_BOOL: c_uint16,
+            TWTY_FIX32: TW_FIX32,
+            TWTY_FRAME: TW_FRAME,
+            TWTY_STR32: c_char*34,
+            TWTY_STR64: c_char*66,
+            TWTY_STR128: c_char*130,
+            TWTY_STR255: c_char*255}
+
 
 def _is_good_type(type_id):
     return type_id in list(_mapping.keys()) 
+
 
 def _struct2dict(struct, decode):
     result = {}
@@ -1350,6 +1425,7 @@ def _struct2dict(struct, decode):
             value = decode(value)
         result[field] = value
     return result
+
 
 _exc_mapping = {TWCC_SUCCESS: excTWCC_SUCCESS,
                 TWCC_BUMMER: excTWCC_BUMMER,
@@ -1373,6 +1449,7 @@ _exc_mapping = {TWCC_SUCCESS: excTWCC_SUCCESS,
                 TWCC_FILEWRITEERROR: excTWCC_FILEWRITEERROR,
                 TWCC_CHECKDEVICEONLINE: excTWCC_CHECKDEVICEONLINE}
 
+
 def _win_check(result, func, args):
     if func is _GlobalFree:
         if result:
@@ -1392,6 +1469,7 @@ def _win_check(result, func, args):
         if not result:
             raise WinError()
         return result
+
 
 if _is_windows():
     _GlobalLock = windll.kernel32.GlobalLock
@@ -1645,8 +1723,9 @@ class Source(object):
         
     def reset_capability(self, cap):
         """This function is used to reset the value of a capability to the source default.
-        One parameter is required, a Capability Identifier (twain.CAP_* or
-        twain.ICAP_*)."""
+
+        :param cap: Capability Identifier (twain.CAP_* or twain.ICAP_*).
+        """
         cap = TW_CAPABILITY(Cap=cap)
         self._call(DG_CONTROL, DAT_CAPABILITY, MSG_RESET, byref(cap))
         
@@ -1927,6 +2006,7 @@ class Source(object):
         _, (_, _, mechs) = self.get_capability(ICAP_XFERMECH)
         if TWSX_FILE not in mechs:
             raise Exception('File transfer is not supported')
+
         def callback():
             filepath = before(self.image_info)
             import os
@@ -1950,6 +2030,7 @@ class Source(object):
                 os.remove(bmppath)
             after(more)
             return more
+
         self.set_capability(ICAP_XFERMECH, TWTY_UINT16, TWSX_FILE)
         self._acquire(callback, show_ui, modal)
     
@@ -1964,6 +2045,7 @@ class Source(object):
         :keyword show_ui: If True source's UI will be presented to user
         :keyword modal:   If True source's UI will be modal
         """
+
         def callback():
             before(self.image_info)
             rv, handle = self._get_native_image()
@@ -1972,6 +2054,7 @@ class Source(object):
                 raise excDSTransferCancelled
             after(_Image(handle), more)
             return more
+
         self.set_capability(ICAP_XFERMECH, TWTY_UINT16, TWSX_NATIVE)
         self._acquire(callback, show_ui, modal)
         
@@ -2137,11 +2220,11 @@ class SourceManager(object):
             raise excSMGetProcAddressFailed(e)
         self._entry.restype = c_uint16
         self._entry.argtypes = (POINTER(TW_IDENTITY),
-                              POINTER(TW_IDENTITY),
-                              c_uint32,
-                              c_uint16,
-                              c_uint16,
-                              c_void_p)
+                                POINTER(TW_IDENTITY),
+                                c_uint32,
+                                c_uint16,
+                                c_uint16,
+                                c_void_p)
         
         self._app_id = TW_IDENTITY(Version=TW_VERSION(MajorNum=MajorNum,
                                                       MinorNum=MinorNum,
@@ -2287,11 +2370,11 @@ class SourceManager(object):
         names = []
         ds_id = TW_IDENTITY()
         rv = self._call(None,
-                   DG_CONTROL,
-                   DAT_IDENTITY,
-                   MSG_GETFIRST,
-                   byref(ds_id),
-                   (TWRC_SUCCESS, TWRC_ENDOFLIST))
+                        DG_CONTROL,
+                        DAT_IDENTITY,
+                        MSG_GETFIRST,
+                        byref(ds_id),
+                        (TWRC_SUCCESS, TWRC_ENDOFLIST))
         while rv != TWRC_ENDOFLIST:
             names.append(self._decode(ds_id.ProductName))
             rv = self._call(None,
@@ -2368,12 +2451,14 @@ def _dib_write(handle, path, lock, unlock):
             bih.biSizeImage = row_bytes * bih.biHeight
         dib_size = bih.biSize + bih.biClrUsed * 4 + bih.biSizeImage 
         file_size = dib_size + file_header_size
+
         def _write_bmp(f):
             import struct
             f.write(b'BM')
             f.write(struct.pack('LHHL', file_size, 0, 0, bits_offset))
             for i in range(dib_size):
                 f.write(char_ptr[i])
+
         if path:
             f = open(path, 'wb')
             try:
@@ -2423,7 +2508,7 @@ def dib_to_xbm_file(handle, path=None):
     import os
     handle, bmppath = tempfile.mkstemp('.bmp')
     os.close(handle)
-    DIBToBMFile(handle, bmppath)
+    dib_to_bm_file(handle, bmppath)
     import Image
     Image.open(bmppath).save(path, 'xbm')
     os.remove(bmppath)
