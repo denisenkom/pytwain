@@ -1,11 +1,8 @@
-"""
-Created on Sep 4, 2011
-
-@author: misha
-"""
+import ctypes
 from ctypes import *
 import weakref
 import sys
+import platform
 
 TWON_PROTOCOLMAJOR = 2
 TWON_PROTOCOLMINOR = 1
@@ -1300,15 +1297,26 @@ class TW_SETUPFILEXFER(Structure):
     _fields_ = [('FileName', c_char * 256),
                 ('Format', c_uint16),
                 ('VRefNum', c_int16)]
-    
+
+
+def _is_windows():
+    return platform.system() == 'Windows'
+
+
+if _is_windows():
+    FUNCTYPE = ctypes.WINFUNCTYPE
+else:
+    FUNCTYPE = ctypes.CFUNCTYPE
+
+
 class TW_ENTRYPOINT(Structure):
     _pack_ = 2
     _fields_ = [('Size', c_uint32),
-                ('DSM_Entry', WINFUNCTYPE(c_int, POINTER(c_int), POINTER(c_int))),
-                ('DSM_MemAllocate', WINFUNCTYPE(c_void_p, c_uint32)),
-                ('DSM_MemFree', WINFUNCTYPE(None, c_void_p)),
-                ('DSM_MemLock', WINFUNCTYPE(c_void_p, c_void_p)),
-                ('DSM_MemUnlock', WINFUNCTYPE(None, c_void_p))]
+                ('DSM_Entry', FUNCTYPE(c_int, POINTER(c_int), POINTER(c_int))),
+                ('DSM_MemAllocate', FUNCTYPE(c_void_p, c_uint32)),
+                ('DSM_MemFree', FUNCTYPE(None, c_void_p)),
+                ('DSM_MemLock', FUNCTYPE(c_void_p, c_void_p)),
+                ('DSM_MemUnlock', FUNCTYPE(None, c_void_p))]
 
 _mapping = {TWTY_INT8: c_int8,
            TWTY_UINT8: c_uint8,
@@ -1384,32 +1392,40 @@ def _win_check(result, func, args):
             raise WinError()
         return result
 
-_GlobalLock = windll.kernel32.GlobalLock
-_GlobalLock.errcheck = _win_check
-_GlobalUnlock = windll.kernel32.GlobalUnlock
-_GlobalUnlock.errcheck = _win_check
-_GlobalAlloc = windll.kernel32.GlobalAlloc
-_GlobalAlloc.errcheck = _win_check
-_GlobalFree = windll.kernel32.GlobalFree
-_GlobalFree.errcheck = _win_check
-_GlobalSize = windll.kernel32.GlobalSize
-_GlobalSize.errcheck = _win_check
-_GetMessage = windll.user32.GetMessageW
-_TranslateMessage = windll.user32.TranslateMessage
-_TranslateMessage.errcheck = _win_check
-_DispatchMessage = windll.user32.DispatchMessageW
-_DispatchMessage.errcheck = _win_check
+if _is_windows():
+    _GlobalLock = windll.kernel32.GlobalLock
+    _GlobalLock.errcheck = _win_check
+    _GlobalUnlock = windll.kernel32.GlobalUnlock
+    _GlobalUnlock.errcheck = _win_check
+    _GlobalAlloc = windll.kernel32.GlobalAlloc
+    _GlobalAlloc.errcheck = _win_check
+    _GlobalFree = windll.kernel32.GlobalFree
+    _GlobalFree.errcheck = _win_check
+    _GlobalSize = windll.kernel32.GlobalSize
+    _GlobalSize.errcheck = _win_check
+    _GetMessage = windll.user32.GetMessageW
+    _TranslateMessage = windll.user32.TranslateMessage
+    _TranslateMessage.errcheck = _win_check
+    _DispatchMessage = windll.user32.DispatchMessageW
+    _DispatchMessage.errcheck = _win_check
 
-GMEM_ZEROINIT = 0x0040
+    GMEM_ZEROINIT = 0x0040
 
-def _twain1_alloc(size):
-    return _GlobalAlloc(GMEM_ZEROINIT, size)
+    def _twain1_alloc(size):
+        return _GlobalAlloc(GMEM_ZEROINIT, size)
 
-_twain1_free = _GlobalFree
-_twain1_lock = _GlobalLock
-_twain1_unlock = _GlobalUnlock
+    _twain1_free = _GlobalFree
+    _twain1_lock = _GlobalLock
+    _twain1_unlock = _GlobalUnlock
 
-class _Source(object):
+
+class Source(object):
+    """
+    This object represents connection to Data Source.
+
+    An instance of this class can be created by calling
+    :meth:`SourceManager.open_source`
+    """
     def __init__(self, sm, ds_id):
         self._sm = sm
         self._id = ds_id
@@ -1446,8 +1462,6 @@ class _Source(object):
             self._sm._close_ds(self._id)
             self._state = 'closed'
             self._sm = None
-    
-    destroy = close
 
     def _call(self, dg, dat, msg, buf, expected_returns=[TWRC_SUCCESS]):
         return self._sm._call(self._id, dg, dat, msg, buf, expected_returns)
@@ -1512,7 +1526,7 @@ class _Source(object):
         finally:
             self._free(twCapability.hContainer)
 
-    def GetCapability(self, cap):
+    def get_capability(self, cap):
         """This function is used to return the capability information from the source.
         If the capability is not supported, an exception should be returned.
         Capabilities are returned as a tuple of a type (TWTY_*) and a value.
@@ -1736,19 +1750,16 @@ class _Source(object):
     
     @property
     def file_xfer_params(self):
-        """Retrieve the configured transfer file name / format"""
+        """ Property which stores tuple of (file name, format) where format is one of TWFF_*
+
+        This property is used by :meth:`xfer_image_by_file`
+        """
         sfx = TW_SETUPFILEXFER()
         self._call(DG_CONTROL, DAT_SETUPFILEXFER, MSG_GET, byref(sfx))
         return self._decode(sfx.FileName), sfx.Format
     
     @file_xfer_params.setter
     def file_xfer_params(self, params):
-        """Where the application is transferring the data via a file,
-        configure the file name.
-        Parameters:
-            params -- tuple (path, format), path should absolute file path
-                      format should be one of TWFF_* constants
-        """
         (path, fmt) = params
         sfx = TW_SETUPFILEXFER(self._encode(path), fmt, 0)
         self._call(DG_CONTROL, DAT_SETUPFILEXFER, MSG_SET, byref(sfx))
@@ -1814,40 +1825,52 @@ class _Source(object):
         self._call(DG_CONTROL, DAT_PENDINGXFERS, MSG_RESET, byref(px))
         self._state = 'enabled'
         
-    def RequestAcquire(self, ShowUI, ModalUI):
+    def request_acquire(self, show_ui, modal_ui):
         """This function is used to ask the source to begin acquisition.
+
         Parameters:
-            ShowUI - bool (default 1)
-            ModalUI - bool (default 1)
+
+        :param show_ui: bool (default 1)
+        :param modal_ui: bool (default 1)
         """
-        self._enable(ShowUI, ModalUI, self._sm._hwnd)
+        self._enable(show_ui, modal_ui, self._sm._hwnd)
     
-    def ModalLoop(self):
-        """This function should be called after call to RequiestAcquire
+    def modal_loop(self):
+        """This function should be called after call to :func:`requiest_acquire`
         it will return after acquisition complete.
         """
         self._modal_loop(self._sm._cb)
         
-    def HideUI(self):
+    def hide_ui(self):
         """This function is used to ask the source to hide the user interface."""
         self._disable()
         
-    def XferImageNatively(self):
+    def xfer_image_natively(self):
         """Perform a 'Native' form transfer of the image.
+
         When successful, this routine returns two values,
         an image handle and a count of the number of images
         remaining in the source.
+
+        If there are more images available you should call
+        :meth:`xfer_image_natively` again, otherwise you should not
+        call it again.
         """
         rv, handle = self._get_native_image()
         more = self._end_xfer()
         if rv == TWRC_CANCEL:
             raise excDSTransferCancelled
         return handle.value, more
-    
-    def XferImageByFile(self):
+
+    def set_xfer_file_name(self, path, format):
+        self.file_xfer_params = path, format
+
+    def xfer_image_by_file(self):
         """Perform a file based transfer of the image.
+
         When successful, the file is saved to the image file,
-        defined in a previous call to SetXferFileName.
+        defined in a previous call to :meth:`file_xfer_params`.
+
         Returns  the number of pending transfers
         """
         rv = self._get_file_image()
@@ -1857,15 +1880,15 @@ class _Source(object):
         return more
 
     def acquire_file(self, before, after=lambda more: None, show_ui=True, modal=False):
-        """Acquires one ore more images as files. Call returns when acquisition complete
-        Parameters:
-            before -- callback called before each acquired file, it should return
-                      full file path. It can also throw CancelAll to cancel acquisition
-            after -- callback called after each acquired file, it receives number of
-                     images remaining. It can throw CancelAll to cancel remaining
-                     acquisition
-            show_ui -- if True source's UI will be presented to user
-            modal   -- if True source's UI will be modal
+        """Acquires one ore more images as files. Call returns when acquisition complete.
+
+        :param before: Callback called before each acquired file, it should return
+                       full file path. It can also throw CancelAll to cancel acquisition
+        :keyword after: Callback called after each acquired file, it receives number of
+                        images remaining. It can throw CancelAll to cancel remaining
+                        acquisition
+        :keyword show_ui: If True source's UI will be presented to user
+        :keyword modal: If True source's UI will be modal
         """
         _, (_, _, mechs) = self.GetCapability(ICAP_XFERMECH)
         if TWSX_FILE not in mechs:
@@ -1898,14 +1921,14 @@ class _Source(object):
     
     def acquire_natively(self, after, before=lambda img_info: None, show_ui=True, modal=False):
         """Acquires one ore more images in memory. Call returns when acquisition complete
-        Parameters:
-            before -- callback called before each acquired file. It can throw CancelAll
-                      to cancel acquisition
-            after -- callback called after each acquired file, it receives an image object and
+
+        :param after: Callback called after each acquired file, it receives an image object and
                      number of images remaining. It can throw CancelAll to cancel remaining
                      acquisition
-            show_ui -- if True source's UI will be presented to user
-            modal   -- if True source's UI will be modal
+        :keyword before: Callback called before each acquired file. It can throw CancelAll
+                      to cancel acquisition
+        :keyword show_ui: If True source's UI will be presented to user
+        :keyword modal:   If True source's UI will be modal
         """
         def callback():
             before(self.image_info)
@@ -1921,24 +1944,67 @@ class _Source(object):
     def is_twain2(self):
         return self._version2
 
-    GetCapabilityCurrent = get_capability_current
-    GetCapabilityDefault = get_capability_default
+    # backward compatible aliases
+    def destroy(self):
+        self.close()
+
+    def GetCapabilityCurrent(self, cap):
+        return self.get_capability_current(cap)
+
+    def GetCapabilityDefault(self, cap):
+        return self.get_capability_default(cap)
+
     def GetSourceName(self):
         return self.name
+
     def GetIdentity(self):
         return self.identity
-    SetCapability = set_capability
-    ResetCapability = reset_capability
-    SetImageLayout = set_image_layout
-    GetImageLayout = get_image_layout
-    GetDefaultImageLayout = get_image_layout_default
-    ResetImageLayout = reset_image_layout
+
+    def GetCapability(self, cap):
+        return self.get_capability(cap)
+
+    def SetCapability(self, cap, type_id, value):
+        return self.set_capability(cap, type_id, value)
+
+    def ResetCapability(self, cap):
+        self.reset_capability(cap)
+
+    def SetImageLayout(self, frame, document_number=1, page_number=1, frame_number=1):
+        self.set_image_layout(frame, document_number, page_number, frame_number)
+
+    def GetImageLayout(self):
+        return self.get_image_layout()
+
+    def GetDefaultImageLayout(self):
+        return self.get_image_layout_default()
+
+    def ResetImageLayout(self):
+        self.reset_image_layout()
+
+    def RequestAcquire(self, show_ui, modal_ui):
+        self.request_acquire(show_ui, modal_ui)
+
+    def ModalLoop(self):
+        self.modal_loop()
+
+    def HideUI(self):
+        self.hide_ui()
+
     def SetXferFileName(self, path, format):
-        self.file_xfer_params = path, format 
+        self.set_xfer_file_name(path, format)
+
     def GetXferFileName(self):
         return self.file_xfer_params
+
     def GetImageInfo(self):
         return self.image_info
+
+    def XferImageNatively(self):
+        return self.xfer_image_natively()
+
+    def XferImageByFile(self):
+        return self.xfer_image_by_file()
+
 
 class SourceManager(object):
     """Represents a Data Source Manager connection"""
@@ -2076,8 +2142,6 @@ class SourceManager(object):
             self._close_dsm()
             self._state = 'closed'
 
-    destroy = close
-
     def _call(self, dest_id, dg, dat, msg, buf, expected_returns=[]):
         rv = self._entry(self._app_id, dest_id, dg, dat, msg, buf)
         if rv == TWRC_SUCCESS or rv in expected_returns:
@@ -2129,9 +2193,11 @@ class SourceManager(object):
     def open_source(self, product_name=None):
         """Open a TWAIN Source.
 
-        Returns a Source Object, which can be used to communicate with the source
-        There is one optional string parameter, which allows the application
-        to name the source to be opened, i.e. to open from application configuration
+        Returns a :class:`Source` Object, which can be used to communicate with the source or None if user cancelled
+        source selection dialog.
+
+        :keyword product_name: source to be opened, if not specified or value is None user will be prompted for
+                               source selection
         """
         if not product_name:
             ds_id = self._user_select()
@@ -2140,13 +2206,13 @@ class SourceManager(object):
         else:
             ds_id = TW_IDENTITY(ProductName=product_name)
         self._open_ds(ds_id)
-        source = _Source(self, ds_id)
+        source = Source(self, ds_id)
         self._sources.add(source)
         return source
 
     @property
     def identity(self):
-        """This function is used to retrieve the identity of our application.
+        """This property is used to retrieve the identity of our application.
         The information is returned in a dictionary.
         """
         res = _struct2dict(self._app_id, self._decode)
@@ -2174,7 +2240,7 @@ class SourceManager(object):
                             (TWRC_SUCCESS, TWRC_ENDOFLIST))
         return names
     
-    def SetCallback(self, cb):
+    def set_callback(self, cb):
         """Register a python function to be used for notification that the
         transfer is ready, etc.
         """
@@ -2183,17 +2249,27 @@ class SourceManager(object):
     def is_twain2(self):
         return self._version2
 
-    OpenSource = open_source
+    # backward compatible aliases
+    def destroy(self):
+        self.close()
+
+    def SetCallback(self, cb):
+        return self.set_callback(cb)
+
+    def OpenSource(self, product_name=None):
+        return self.open_source(product_name)
+
     def GetIdentity(self):
         return self.identity
+
     def GetSourceList(self):
         return self.source_list
 
+
 def version():
-    """Retrieve the version of the Python Twain Interface"""
+    """Retrieve the version of the module"""
     return '2.0'
 
-Version = version
 
 class BITMAPINFOHEADER(Structure):
     _pack_ = 4
@@ -2208,6 +2284,7 @@ class BITMAPINFOHEADER(Structure):
                 ('biYPelsPerMeter', c_long),
                 ('biClrUsed', c_uint32),
                 ('biClrImportant', c_uint32)]
+
 
 def _dib_write(handle, path, lock, unlock):
     file_header_size = 14
@@ -2247,24 +2324,38 @@ def _dib_write(handle, path, lock, unlock):
     finally:
         unlock(handle)
 
-def DIBToBMFile(handle, path=None):
+def dib_to_bm_file(handle, path=None):
     """Convert a DIB (Device Independent Bitmap) to a windows
     bitmap file format. The BitMap file is either returned as
     a string, or written to a file with the name given in the
     second argument.
-    Can only be used with twain 1.x sources
+
+    .. note::
+
+        Can only be used with twain 1.x sources
     """
     return _dib_write(handle, path, _GlobalLock, _GlobalUnlock)
 
-def DIBToXBMFile(handle, path=None):
+
+def DIBToBMFile(handle, path=None):
+    """ Backward compatible alias for :func:`dib_to_bm_file` """
+    return dib_to_bm_file(handle, path)
+
+
+def dib_to_xbm_file(handle, path=None):
     """Convert a DIB (Device Independent Bitmap) to an X-Windows
     bitmap file (XBM format). The XBM file is either returned as
     a string, or written to a file with the name given in the
     third argument.
-    Parameters: a handle to a global area containing a DIB,
-        a prefix to be used for the name and an optional filename
+    Parameters:
+
+    :param handle: Handle to a global area containing a DIB,
+    :param path: Path prefix to be used for the name and an optional filename
         for file only output.
-    Can only be used with twain 1.x sources
+
+    .. note::
+
+        Can only be used with twain 1.x sources
     """
     import tempfile
     import os
@@ -2275,13 +2366,23 @@ def DIBToXBMFile(handle, path=None):
     Image.open(bmppath).save(path, 'xbm')
     os.remove(bmppath)
 
-def GlobalHandleGetBytes(handle, offset, count):
+
+def DIBToXBMFile(handle, path=None):
+    """ Backward compatible alias for :func:`dib_to_xbm_file` """
+    return dib_to_xbm_file(handle, path)
+
+
+def global_handle_get_bytes(handle, offset, count):
     """Read a specified number of bytes from a global handle.
-    The following parameters are required
-     Handle - a global handle
-     Offset - an index into the handle data
-     Count - The number of bytes to be returned
-    Can only be used with twain 1.x sources
+
+    Parameters:
+    :param handle: Global handle
+    :param offset: An index into the handle data
+    :param count: The number of bytes to be returned
+
+    .. note::
+
+        Can only be used with twain 1.x sources
     """
     size = _GlobalSize(handle)
     ptr = _GlobalLock(handle)
@@ -2291,14 +2392,25 @@ def GlobalHandleGetBytes(handle, offset, count):
     finally:
         _GlobalUnlock(handle)
 
-def GlobalHandlePutBytes(handle, offset, count, data):
+
+def GlobalHandleGetBytes(handle, offset, count):
+    """ Backward compatible alias for :func:`global_handle_get_bytes` """
+    return global_handle_get_bytes(handle, offset, count)
+
+
+def global_handle_put_bytes(handle, offset, count, data):
     """Write a specified number of bytes to a global handle.
-    The following parameters are required
-     Handle - a global handle
-     Offset - an index into the handle data
-     Count - The number of bytes to be returned
-     Data - String of data to be written
-    Can only be used with twain 1.x sources
+
+    Parameters:
+
+    :param handle: Global handle
+    :param offset: An index into the handle data
+    :param count: The number of bytes to update
+    :param data: String of data to be written
+
+    .. note::
+
+        Can only be used with twain 1.x sources
     """
     size = _GlobalSize(handle)
     ptr = _GlobalLock(handle)
@@ -2313,19 +2425,49 @@ def GlobalHandlePutBytes(handle, offset, count, data):
     finally:
         _GlobalUnlock(handle)
 
-'''Allocate a specified number of bytes via a global handle.
-The following parameters are required
- Size - The number of bytes to be allocated
-Can only be used with twain 1.x sources
-'''
-GlobalHandleAllocate = _GlobalAlloc
 
-'''Free an allocated heap section via the global handle.
-The following parameters are required
- handle - The number of bytes to be allocated
-Can only be used with twain 1.x sources
-'''
-GlobalHandleFree = _GlobalFree
+def GlobalHandlePutBytes(handle, offset, count, data):
+    """ Backward compatible alias for :func:`global_handle_put_bytes` """
+    return global_handle_put_bytes(handle, offset, count, data)
+
+
+def global_handle_allocate(flags, size):
+    """Allocate a specified number of bytes via a global handle.
+
+    Parameters:
+
+    :param size: The number of bytes to be allocated
+
+    .. note::
+
+        Can only be used with twain 1.x sources
+    """
+    return _GlobalAlloc(flags, size)
+
+
+def global_handle_free(handle):
+    """Free an allocated heap section via the global handle.
+
+    Parameters:
+
+    :param handle: Handle to memory to be freed
+
+    .. note::
+
+        Can only be used with twain 1.x sources
+    """
+    return _GlobalFree(handle)
+
+
+def GlobalHandleAllocate(flags, size):
+    """ Backward compatible alias for :func:`global_handle_allocate` """
+    return global_handle_allocate(flags, size)
+
+
+def GlobalHandleFree(handle):
+    """ Backward compatible alias for :func:`global_handle_free` """
+    return global_handle_free(handle)
+
 
 def acquire(path,
             ds_name=None,
@@ -2337,16 +2479,21 @@ def acquire(path,
             show_ui=False,
             dsm_name=None):
     """Acquires single image into file
-    Required argument:
-        path -- path where to save image
+
+    Parameters:
+
+    :param path: Path where to save image
+
     Keyword arguments:
-        ds_name -- name of twain data source, if not provided user will be presented with selection dialog
-        dpi -- resolution in dots per inch
-        pixel_type -- can be 'bw', 'gray', 'color'
-        bpp -- bits per pixel
-        frame -- tuple (left, top, right, bottom) scan area in inches
-        parent_window -- can be Tk, Wx, Gtk window object or Win32 window handle
-        show_ui -- if True source's UI dialog will be presented to user
+
+    :keyword ds_name: name of twain data source, if not provided user will be presented with selection dialog
+    :keyword dpi: resolution in dots per inch
+    :keyword pixel_type: can be 'bw', 'gray', 'color'
+    :keyword bpp: bits per pixel
+    :keyword frame: tuple (left, top, right, bottom) scan area in inches
+    :keyword parent_window: can be Tk, Wx, Gtk window object or Win32 window handle
+    :keyword show_ui: if True source's UI dialog will be presented to user
+
     Returns a dictionary describing image, or None if scanning was cancelled by user
 
     """
