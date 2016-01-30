@@ -1477,7 +1477,7 @@ class Source(object):
             self._state = 'closed'
             self._sm = None
 
-    def _call(self, dg, dat, msg, buf, expected_returns=[TWRC_SUCCESS]):
+    def _call(self, dg, dat, msg, buf, expected_returns=(TWRC_SUCCESS,)):
         return self._sm._call(self._id, dg, dat, msg, buf, expected_returns)
 
     def _get_capability(self, cap, current):
@@ -1517,7 +1517,7 @@ class Source(object):
                         msg = "Capability Code = %d, Format Code = %d, Item Type = %d" % (cap,
                                                                                           twCapability.ConType,
                                                                                           enum.ItemType)
-                        raise excCapabilityFormatNotSupported(msg);
+                        raise excCapabilityFormatNotSupported(msg)
                     ctype = _mapping[enum.ItemType]
                     item_p = cast(ptr + sizeof(TW_ENUMERATION), POINTER(ctype))
                     values = [el for el in item_p[0:enum.NumItems]]
@@ -1528,7 +1528,7 @@ class Source(object):
                         msg = "Capability Code = %d, Format Code = %d, Item Type = %d" % (cap,
                                                                                           twCapability.ConType,
                                                                                           arr.ItemType)
-                        raise excCapabilityFormatNotSupported(msg);
+                        raise excCapabilityFormatNotSupported(msg)
                     ctype = _mapping[arr.ItemType]
                     item_p = cast(ptr + sizeof(TW_ARRAY), POINTER(ctype))
                     return arr.ItemType, [el for el in item_p[0:arr.NumItems]]
@@ -1795,7 +1795,7 @@ class Source(object):
         self._call(DG_IMAGE,
                    DAT_IMAGEINFO,
                    MSG_GET,
-                   byref(ii));
+                   byref(ii))
         return {"XResolution": _fix2float(ii.XResolution),
                 "YResolution": _fix2float(ii.YResolution),
                 "ImageWidth": ii.ImageWidth,
@@ -2292,7 +2292,7 @@ class SourceManager(object):
                    MSG_GETFIRST,
                    byref(ds_id),
                    (TWRC_SUCCESS, TWRC_ENDOFLIST))
-        while (rv != TWRC_ENDOFLIST):
+        while rv != TWRC_ENDOFLIST:
             names.append(self._decode(ds_id.ProductName))
             rv = self._call(None,
                             DG_CONTROL,
@@ -2364,7 +2364,7 @@ def _dib_write(handle, path, lock, unlock):
             raise excImageFormat(msg)
         bits_offset = file_header_size + bih.biSize + bih.biClrUsed * 4
         if bih.biSizeImage == 0:
-            row_bytes = (((bih.biWidth * bih.biBitCount) + 31) & ~31) / 8;
+            row_bytes = (((bih.biWidth * bih.biBitCount) + 31) & ~31) / 8
             bih.biSizeImage = row_bytes * bih.biHeight
         dib_size = bih.biSize + bih.biClrUsed * 4 + bih.biSizeImage 
         file_size = dib_size + file_header_size
