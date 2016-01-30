@@ -3,6 +3,7 @@ from ctypes import *
 import weakref
 import sys
 import platform
+import warnings
 
 TWON_PROTOCOLMAJOR = 2
 TWON_PROTOCOLMINOR = 1
@@ -1910,7 +1911,7 @@ class Source(object):
         :keyword show_ui: If True source's UI will be presented to user
         :keyword modal: If True source's UI will be modal
         """
-        _, (_, _, mechs) = self.GetCapability(ICAP_XFERMECH)
+        _, (_, _, mechs) = self.get_capability(ICAP_XFERMECH)
         if TWSX_FILE not in mechs:
             raise Exception('File transfer is not supported')
         def callback():
@@ -1969,60 +1970,79 @@ class Source(object):
         self.close()
 
     def GetCapabilityCurrent(self, cap):
+        warnings.warn("GetCapabilityCurrent is deprecated, use get_capability_current instead", DeprecationWarning)
         return self.get_capability_current(cap)
 
     def GetCapabilityDefault(self, cap):
+        warnings.warn("GetCapabilityDefault is deprecated, use get_capability_default instead", DeprecationWarning)
         return self.get_capability_default(cap)
 
     def GetSourceName(self):
+        warnings.warn("GetSourceName is deprecated, use name property instead", DeprecationWarning)
         return self.name
 
     def GetIdentity(self):
+        warnings.warn("GetIdentity is deprecated, use identity property instead", DeprecationWarning)
         return self.identity
 
     def GetCapability(self, cap):
+        warnings.warn("GetCapability is deprecated, use get_capability instead", DeprecationWarning)
         return self.get_capability(cap)
 
     def SetCapability(self, cap, type_id, value):
+        warnings.warn("SetCapability is deprecated, use set_capability instead", DeprecationWarning)
         return self.set_capability(cap, type_id, value)
 
     def ResetCapability(self, cap):
+        warnings.warn("ResetCapability is deprecated, use reset_capability instead", DeprecationWarning)
         self.reset_capability(cap)
 
     def SetImageLayout(self, frame, document_number=1, page_number=1, frame_number=1):
+        warnings.warn("SetImageLayout is deprecated, use set_image_layout instead", DeprecationWarning)
         self.set_image_layout(frame, document_number, page_number, frame_number)
 
     def GetImageLayout(self):
+        warnings.warn("GetImageLayout is deprecated, use get_image_layout instead", DeprecationWarning)
         return self.get_image_layout()
 
     def GetDefaultImageLayout(self):
+        warnings.warn("GetDefaultImageLayout is deprecated, use get_default_image_layout instead", DeprecationWarning)
         return self.get_image_layout_default()
 
     def ResetImageLayout(self):
+        warnings.warn("ResetImageLayout is deprecated, use reset_image_layout instead", DeprecationWarning)
         self.reset_image_layout()
 
     def RequestAcquire(self, show_ui, modal_ui):
+        warnings.warn("RequestAcquire is deprecated, use reset_acquire instead", DeprecationWarning)
         self.request_acquire(show_ui, modal_ui)
 
     def ModalLoop(self):
+        warnings.warn("ModalLoop is deprecated, use modal_loop instead", DeprecationWarning)
         self.modal_loop()
 
     def HideUI(self):
+        warnings.warn("HideUI is deprecated, use hide_ui instead", DeprecationWarning)
         self.hide_ui()
 
     def SetXferFileName(self, path, format):
-        self.xfer_file_name = (path, format)
+        warnings.warn("SetXferFileName is deprecated, use file_xfer_params instead", DeprecationWarning)
+        self.file_xfer_params = (path, format)
 
     def GetXferFileName(self):
+        warnings.warn("GetXferFileName is deprecated, use file_xfer_params property instead", DeprecationWarning)
         return self.file_xfer_params
 
     def GetImageInfo(self):
+        warnings.warn("GetImageInfo is deprecated, use image_info property instead", DeprecationWarning)
         return self.image_info
 
     def XferImageNatively(self):
+        warnings.warn("XferImageNatively is deprecated, use xfer_image_natively instead", DeprecationWarning)
         return self.xfer_image_natively()
 
     def XferImageByFile(self):
+        warnings.warn("XferImageByFile is deprecated, use xfer_image_by_file instead", DeprecationWarning)
         return self.xfer_image_by_file()
 
 
@@ -2271,18 +2291,23 @@ class SourceManager(object):
 
     # backward compatible aliases
     def destroy(self):
+        warnings.warn("destroy is deprecated, use close instead", DeprecationWarning)
         self.close()
 
     def SetCallback(self, cb):
+        warnings.warn("SetCallback is deprecated, use set_callback instead", DeprecationWarning)
         return self.set_callback(cb)
 
     def OpenSource(self, product_name=None):
+        warnings.warn("OpenSource is deprecated, use open_source instead", DeprecationWarning)
         return self.open_source(product_name)
 
     def GetIdentity(self):
+        warnings.warn("GetIdentity is deprecated, use identity property instead", DeprecationWarning)
         return self.identity
 
     def GetSourceList(self):
+        warnings.warn("GetSourceList is deprecated, use source_list property instead", DeprecationWarning)
         return self.source_list
 
 
@@ -2357,11 +2382,6 @@ def dib_to_bm_file(handle, path=None):
     return _dib_write(handle, path, _GlobalLock, _GlobalUnlock)
 
 
-def DIBToBMFile(handle, path=None):
-    """ Backward compatible alias for :func:`dib_to_bm_file` """
-    return dib_to_bm_file(handle, path)
-
-
 def dib_to_xbm_file(handle, path=None):
     """Convert a DIB (Device Independent Bitmap) to an X-Windows
     bitmap file (XBM format). The XBM file is either returned as
@@ -2387,11 +2407,6 @@ def dib_to_xbm_file(handle, path=None):
     os.remove(bmppath)
 
 
-def DIBToXBMFile(handle, path=None):
-    """ Backward compatible alias for :func:`dib_to_xbm_file` """
-    return dib_to_xbm_file(handle, path)
-
-
 def global_handle_get_bytes(handle, offset, count):
     """Read a specified number of bytes from a global handle.
 
@@ -2411,11 +2426,6 @@ def global_handle_get_bytes(handle, offset, count):
         return char_ptr[min(offset, size) : min(offset + count, size)]
     finally:
         _GlobalUnlock(handle)
-
-
-def GlobalHandleGetBytes(handle, offset, count):
-    """ Backward compatible alias for :func:`global_handle_get_bytes` """
-    return global_handle_get_bytes(handle, offset, count)
 
 
 def global_handle_put_bytes(handle, offset, count, data):
@@ -2446,11 +2456,6 @@ def global_handle_put_bytes(handle, offset, count, data):
         _GlobalUnlock(handle)
 
 
-def GlobalHandlePutBytes(handle, offset, count, data):
-    """ Backward compatible alias for :func:`global_handle_put_bytes` """
-    return global_handle_put_bytes(handle, offset, count, data)
-
-
 def global_handle_allocate(flags, size):
     """Allocate a specified number of bytes via a global handle.
 
@@ -2479,16 +2484,6 @@ def global_handle_free(handle):
     return _GlobalFree(handle)
 
 
-def GlobalHandleAllocate(flags, size):
-    """ Backward compatible alias for :func:`global_handle_allocate` """
-    return global_handle_allocate(flags, size)
-
-
-def GlobalHandleFree(handle):
-    """ Backward compatible alias for :func:`global_handle_free` """
-    return global_handle_free(handle)
-
-
 def acquire(path,
             ds_name=None,
             dpi=None,
@@ -2500,12 +2495,7 @@ def acquire(path,
             dsm_name=None):
     """Acquires single image into file
 
-    Parameters:
-
     :param path: Path where to save image
-
-    Keyword arguments:
-
     :keyword ds_name: name of twain data source, if not provided user will be presented with selection dialog
     :keyword dpi: resolution in dots per inch
     :keyword pixel_type: can be 'bw', 'gray', 'color'
@@ -2563,3 +2553,40 @@ def acquire(path,
     finally:
         sm.close()
     return res[0]
+
+
+# backward compatible aliases
+def DIBToBMFile(handle, path=None):
+    """ Backward compatible alias for :func:`dib_to_bm_file` """
+    warnings.warn("DIBToBMFile is deprecated, use dib_to_bm_file instead", DeprecationWarning)
+    return dib_to_bm_file(handle, path)
+
+
+def DIBToXBMFile(handle, path=None):
+    """ Backward compatible alias for :func:`dib_to_xbm_file` """
+    warnings.warn("DIBToXBMFile is deprecated, use dib_to_xbm_file instead", DeprecationWarning)
+    return dib_to_xbm_file(handle, path)
+
+
+def GlobalHandleGetBytes(handle, offset, count):
+    """ Backward compatible alias for :func:`global_handle_get_bytes` """
+    warnings.warn("GlobalHandleGetBytes is deprecated, use global_handle_get_bytes instead", DeprecationWarning)
+    return global_handle_get_bytes(handle, offset, count)
+
+
+def GlobalHandlePutBytes(handle, offset, count, data):
+    """ Backward compatible alias for :func:`global_handle_put_bytes` """
+    warnings.warn("GlobalHandlePutBytes is deprecated, use global_handle_put_bytes instead", DeprecationWarning)
+    return global_handle_put_bytes(handle, offset, count, data)
+
+
+def GlobalHandleAllocate(flags, size):
+    """ Backward compatible alias for :func:`global_handle_allocate` """
+    warnings.warn("GlobalHandleAllocate is deprecated, use global_handle_allocate instead", DeprecationWarning)
+    return global_handle_allocate(flags, size)
+
+
+def GlobalHandleFree(handle):
+    """ Backward compatible alias for :func:`global_handle_free` """
+    warnings.warn("GlobalHandleFree is deprecated, use global_handle_free instead", DeprecationWarning)
+    return global_handle_free(handle)
