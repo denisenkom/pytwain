@@ -1753,6 +1753,8 @@ class Source(object):
         """ Property which stores tuple of (file name, format) where format is one of TWFF_*
 
         This property is used by :meth:`xfer_image_by_file`
+
+        Valid states: 4, 5, 6
         """
         sfx = TW_SETUPFILEXFER()
         self._call(DG_CONTROL, DAT_SETUPFILEXFER, MSG_GET, byref(sfx))
@@ -1772,6 +1774,8 @@ class Source(object):
         hard to get at the message loop in toolkits such as wxPython.
         As an alternative, I poll the source looking for image information.
         When the image information is available, the image is ready for transfer
+
+        Valid states: 6, 7
         """
         ii = TW_IMAGEINFO()
         self._call(DG_IMAGE,
@@ -1828,21 +1832,30 @@ class Source(object):
     def request_acquire(self, show_ui, modal_ui):
         """This function is used to ask the source to begin acquisition.
 
-        Parameters:
+        Transitions Source to state 5.
 
         :param show_ui: bool (default 1)
         :param modal_ui: bool (default 1)
+
+        Valid states: 4
         """
         self._enable(show_ui, modal_ui, self._sm._hwnd)
     
     def modal_loop(self):
         """This function should be called after call to :func:`requiest_acquire`
         it will return after acquisition complete.
+
+        Valid states: 5
         """
         self._modal_loop(self._sm._cb)
         
     def hide_ui(self):
-        """This function is used to ask the source to hide the user interface."""
+        """This function is used to ask the source to hide the user interface.
+
+        Transitions Source to state 4 if successful.
+
+        Valid states: 5
+        """
         self._disable()
         
     def xfer_image_natively(self):
@@ -1852,18 +1865,18 @@ class Source(object):
         an image handle and a count of the number of images
         remaining in the source.
 
-        If there are more images available you should call
-        :meth:`xfer_image_natively` again, otherwise you should not
-        call it again.
+        If remaining number of images is zero Source will
+        transition to state 5, otherwise it stays in state 6
+        in which case you should call
+        :meth:`xfer_image_natively` again.
+
+        Valid states: 6
         """
         rv, handle = self._get_native_image()
         more = self._end_xfer()
         if rv == TWRC_CANCEL:
             raise excDSTransferCancelled
         return handle.value, more
-
-    def set_xfer_file_name(self, path, format):
-        self.file_xfer_params = path, format
 
     def xfer_image_by_file(self):
         """Perform a file based transfer of the image.
@@ -1872,6 +1885,13 @@ class Source(object):
         defined in a previous call to :meth:`file_xfer_params`.
 
         Returns  the number of pending transfers
+
+        If remaining number of images is zero Source will
+        transition to state 5, otherwise it stays in state 6
+        in which case you should call
+        :meth:`xfer_image_natively` again.
+
+        Valid states: 6
         """
         rv = self._get_file_image()
         more = self._end_xfer()
@@ -1991,7 +2011,7 @@ class Source(object):
         self.hide_ui()
 
     def SetXferFileName(self, path, format):
-        self.set_xfer_file_name(path, format)
+        self.xfer_file_name = (path, format)
 
     def GetXferFileName(self):
         return self.file_xfer_params
