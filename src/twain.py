@@ -2382,12 +2382,17 @@ class SourceManager(object):
         """Returns a list containing the names of the available source."""
         names = []
         ds_id = TW_IDENTITY()
-        rv = self._call(None,
-                        DG_CONTROL,
-                        DAT_IDENTITY,
-                        MSG_GETFIRST,
-                        byref(ds_id),
-                        (TWRC_SUCCESS, TWRC_ENDOFLIST))
+        try:
+            rv = self._call(None,
+                            DG_CONTROL,
+                            DAT_IDENTITY,
+                            MSG_GETFIRST,
+                            byref(ds_id),
+                            (TWRC_SUCCESS, TWRC_ENDOFLIST))
+        except excTWCC_NODS:
+            # there are no data sources
+            return names
+
         while rv != TWRC_ENDOFLIST:
             names.append(self._decode(ds_id.ProductName))
             rv = self._call(None,
