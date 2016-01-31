@@ -19,4 +19,5 @@ setup(name='pytwain',
           'Topic :: Multimedia :: Graphics :: Capture :: Digital Camera',
           'Topic :: Multimedia :: Graphics :: Capture :: Scanners',
           ],
+      tests_require=['six'],
       )
