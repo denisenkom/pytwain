@@ -2163,37 +2163,36 @@ def _get_dsm(dsm_name=None):
 class SourceManager(object):
     """Represents a Data Source Manager connection"""
     def __init__(self,
-                 parent_window,
-                 MajorNum = 1,
-                 MinorNum = 0,
-                 Language = TWLG_USA,
-                 Country  = TWCY_USA,
-                 Info   = "",
-                 ProductName  = "TWAIN Python Interface",
-                 ProtocolMajor = TWON_PROTOCOLMAJOR,
-                 ProtocolMinor = TWON_PROTOCOLMINOR,
-                 SupportedGroups =  DG_IMAGE | DG_CONTROL,
-                 Manufacturer =  "Kevin Gill",
-                 ProductFamily = "TWAIN Python Interface",
+                 parent_window=None,
+                 MajorNum=1,
+                 MinorNum=0,
+                 Language=TWLG_USA,
+                 Country=TWCY_USA,
+                 Info="",
+                 ProductName="TWAIN Python Interface",
+                 ProtocolMajor=TWON_PROTOCOLMAJOR,
+                 ProtocolMinor=TWON_PROTOCOLMINOR,
+                 SupportedGroups=DG_IMAGE | DG_CONTROL,
+                 Manufacturer="Kevin Gill",
+                 ProductFamily="TWAIN Python Interface",
                  dsm_name = None):
         """Constructor for a TWAIN Source Manager Object. This
         constructor has one position argument, parent_window, which
-        should contain Tk, Wx or Gtk window object or the windows
-        handle of the main window.
+        should contain .
 
-        The following are the named parameters
-         parent_window         mandatory
-         MajorNum   default = 1
-         MinorNum   default = 0
-         Language   default = TWLG_USA
-         Country    default = TWCY_USA
-         Info       default = 'TWAIN Python Interface 1.0.0.0  10/02/2002'
-         ProductName  default = 'TWAIN Python Interface'
-         ProtocolMajor default = TWON_PROTOCOLMAJOR
-         ProtocolMinor default = TWON_PROTOCOLMINOR
-         SupportedGroups default =  DG_IMAGE | DG_CONTROL
-         Manufacturer    default =  'Kevin Gill'
-         ProductFamily default = 'TWAIN Python Interface'
+        :param parent_window: can contain Tk, Wx or Gtk window object or the windows
+            handle of the main window
+        :keyword MajorNum:   default = 1
+        :keyword MinorNum:   default = 0
+        :keyword Language:   default = TWLG_USA
+        :keyword Country:    default = TWCY_USA
+        :keyword Info:       default = 'TWAIN Python Interface 1.0.0.0  10/02/2002'
+        :keyword ProductName:  default = 'TWAIN Python Interface'
+        :keyword ProtocolMajor: default = TWON_PROTOCOLMAJOR
+        :keyword ProtocolMinor: default = TWON_PROTOCOLMINOR
+        :keyword SupportedGroups: default =  DG_IMAGE | DG_CONTROL
+        :keyword Manufacturer:    default =  'Kevin Gill'
+        :keyword ProductFamily: default = 'TWAIN Python Interface'
 
         """
         self._sources = weakref.WeakSet()
