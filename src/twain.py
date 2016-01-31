@@ -2151,10 +2151,10 @@ def _get_dsm(dsm_name=None):
                 dsm_name = 'twaindsm.dll'
                 try:
                     return ctypes.WinDLL(dsm_name)
-                except ctypes.WindowsError:
+                except WindowsError:
                     dsm_name = 'twain_32.dll'
                     return ctypes.WinDLL(dsm_name)
-        except ctypes.WindowsError as e:
+        except WindowsError as e:
             raise excSMLoadFileFailed(e)
     else:
         return ctypes.CDLL('/System/Library/Frameworks/TWAIN.framework/TWAIN')
