@@ -1542,6 +1542,12 @@ class Source(object):
     def __del__(self):
         self.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
     def close(self):
         """This method is used to close the data source object.
         It gives finer control over this connects than relying on garbage collection.
@@ -2210,6 +2216,8 @@ class SourceManager(object):
             elif hasattr(parent_window, 'window') and hasattr(parent_window.window, 'handle'):
                 # gtk window
                 self._hwnd = parent_window.window.handle
+            elif parent_window is None:
+                self._hwnd = 0
             else:
                 self._hwnd = int(parent_window)
         twain_dll = _get_dsm(dsm_name)
@@ -2268,6 +2276,12 @@ class SourceManager(object):
     def __del__(self):
         if self._state == 'open':
             self._close_dsm()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def _close_dsm(self):
         self._call(None,
@@ -2343,12 +2357,12 @@ class SourceManager(object):
         :keyword product_name: source to be opened, if not specified or value is None user will be prompted for
                                source selection
         """
-        if not product_name:
+        if product_name:
+            ds_id = TW_IDENTITY(ProductName=self._encode(product_name))
+        else:
             ds_id = self._user_select()
             if not ds_id:
                 return None
-        else:
-            ds_id = TW_IDENTITY(ProductName=product_name)
         self._open_ds(ds_id)
         source = Source(self, ds_id)
         self._sources.add(source)
