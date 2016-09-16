@@ -66,7 +66,10 @@ class MainWindow(Frame, TwainBase):
 
     def DisplayImage(self, filename):
         try:
-            import ImageTk # PIL required
+            import ImageTk  # PIL required
+        except ImportError:
+            from PIL import ImageTk
+        try:
             imagedata = ImageTk.PhotoImage(file=filename)
             self.imageLabel.config(image=imagedata)
             self.imageLabel.pack(side="left", fill="both", expand=1)

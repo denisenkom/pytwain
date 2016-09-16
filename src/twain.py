@@ -2031,7 +2031,10 @@ class Source(object):
             if rv == TWRC_CANCEL:
                 raise excDSTransferCancelled
             if ext != '.bmp':
-                import Image
+                try:
+                    import Image
+                except ImportError:
+                    from PIL import Image
                 Image.open(bmppath).save(filepath)            
                 os.remove(bmppath)
             after(more)
@@ -2527,7 +2530,10 @@ def dib_to_xbm_file(handle, path=None):
     handle, bmppath = tempfile.mkstemp('.bmp')
     os.close(handle)
     dib_to_bm_file(handle, bmppath)
-    import Image
+    try:
+        import Image
+    except ImportError:
+        from PIL import Image
     Image.open(bmppath).save(path, 'xbm')
     os.remove(bmppath)
 
