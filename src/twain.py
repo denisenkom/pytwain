@@ -2488,7 +2488,7 @@ def _dib_write(handle, path, lock, unlock):
                 f.close()
         else:
             import io
-            f = io.StringIO(file_size)
+            f = io.BytesIO()
             try:
                 _write_bmp(f)
                 return f.getvalue()
