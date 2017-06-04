@@ -1253,6 +1253,9 @@ class TW_FIX32(Structure):
     _fields_ = [('Whole', c_int16),
                 ('Frac', c_uint16)]
 
+    def __str__(self):
+        return str(_fix2float(self))
+
 
 class TW_FRAME(Structure):
     _pack_ = 2

@@ -12,4 +12,7 @@ class MyTestCase(unittest.TestCase):
                 self.skipTest('No Sources present on the system')
             ds_name = sm.source_list[0]
             with sm.open_source(str(ds_name)) as ds:
-                pass
+                val = ds.get_capability(twain.ICAP_YRESOLUTION)
+                print(val)
+                for v in val[1][2]:
+                    print(v)
