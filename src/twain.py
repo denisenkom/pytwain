@@ -1476,14 +1476,21 @@ def _win_check(result, func, args):
 
 if _is_windows():
     _GlobalLock = windll.kernel32.GlobalLock
+    _GlobalLock.argtypes = [ctypes.c_void_p]
+    _GlobalLock.restype = ctypes.c_void_p
     _GlobalLock.errcheck = _win_check
     _GlobalUnlock = windll.kernel32.GlobalUnlock
+    _GlobalUnlock.argtypes = [ctypes.c_void_p]
     _GlobalUnlock.errcheck = _win_check
     _GlobalAlloc = windll.kernel32.GlobalAlloc
+    _GlobalAlloc.restype = ctypes.c_void_p
     _GlobalAlloc.errcheck = _win_check
     _GlobalFree = windll.kernel32.GlobalFree
+    _GlobalFree.argtypes = [ctypes.c_void_p]
     _GlobalFree.errcheck = _win_check
     _GlobalSize = windll.kernel32.GlobalSize
+    _GlobalSize.argtypes = [ctypes.c_void_p]
+    _GlobalSize.restype = ctypes.c_size_t
     _GlobalSize.errcheck = _win_check
     _GetMessage = windll.user32.GetMessageW
     _TranslateMessage = windll.user32.TranslateMessage
@@ -2471,7 +2478,7 @@ def _dib_write(handle, path, lock, unlock):
             raise excImageFormat(msg)
         bits_offset = file_header_size + bih.biSize + bih.biClrUsed * 4
         if bih.biSizeImage == 0:
-            row_bytes = (((bih.biWidth * bih.biBitCount) + 31) & ~31) / 8
+            row_bytes = (((bih.biWidth * bih.biBitCount) + 31) & ~31) // 8
             bih.biSizeImage = row_bytes * bih.biHeight
         dib_size = bih.biSize + bih.biClrUsed * 4 + bih.biSizeImage 
         file_size = dib_size + file_header_size
