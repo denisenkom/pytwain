@@ -2043,7 +2043,7 @@ class Source(object):
             if ext != '.bmp':
                 try:
                     import Image
-                except ImportError:
+                except ModuleNotFoundError:
                     from PIL import Image
                 Image.open(bmppath).save(filepath)            
                 os.remove(bmppath)
@@ -2542,7 +2542,7 @@ def dib_to_xbm_file(handle, path=None):
     dib_to_bm_file(handle, bmppath)
     try:
         import Image
-    except ImportError:
+    except ModuleNotFoundError:
         from PIL import Image
     Image.open(bmppath).save(path, 'xbm')
     os.remove(bmppath)
