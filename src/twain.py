@@ -1,9 +1,13 @@
 import ctypes
+import os
 from ctypes import *
 import weakref
 import sys
 import platform
 import warnings
+import logging
+
+logger = logging.getLogger('twain')
 
 TWON_PROTOCOLMAJOR = 2
 TWON_PROTOCOLMINOR = 1
@@ -1799,6 +1803,7 @@ class Source(object):
             modal_ui - bool
         """
         ui = TW_USERINTERFACE(ShowUI=show_ui, ModalUI=modal_ui, hParent=hparent)
+        logger.info("starting scan")
         self._call(DG_CONTROL, DAT_USERINTERFACE, MSG_ENABLEDS, byref(ui))
         self._state = 'enabled'
 
@@ -1822,17 +1827,22 @@ class Source(object):
                         byref(event),
                         (TWRC_DSEVENT,
                          TWRC_NOTDSEVENT))
+        logger.debug("handling event result %d", rv)
         if event.TWMessage == MSG_XFERREADY:
+            logger.info("transfer is ready")
             self._state = 'ready'
         return rv, event.TWMessage
     
     def _modal_loop(self, callback):
+        logger.info("entering modal loop")
         done = False
         msg = MSG()
         while not done:
             if not _GetMessage(byref(msg), 0, 0, 0):
                 break
             rc, event = self._process_event(byref(msg))
+            if rc not in (TWRC_NOTDSEVENT, TWRC_DSEVENT):
+                logger.info("got unusual process event result %d", rc)
             if callback:
                 callback(event)
             if event in (MSG_XFERREADY, MSG_CLOSEDSREQ):
@@ -1840,12 +1850,14 @@ class Source(object):
             if rc == TWRC_NOTDSEVENT:
                 _TranslateMessage(byref(msg))
                 _DispatchMessage(byref(msg))
-    
+        logger.info("exited modal loop")
+
     def _acquire(self, callback, show_ui=True, modal=False):
         self._enable(show_ui, modal, self._sm._hwnd)
         try:
             def callback_lolevel(event):
                 if event == MSG_XFERREADY:
+                    logger.info("got MSG_XFERREADY message")
                     more = True
                     while more:
                         try:
@@ -2161,19 +2173,31 @@ class Source(object):
         return self.xfer_image_by_file()
 
 
-def _get_dsm(dsm_name=None):
+def _get_protocol_major_version(requested_protocol_major_version):
+    if requested_protocol_major_version not in [None, 1, 2]:
+        raise ValueError("Invalid protocol version specified")
     if _is_windows():
-        try:
-            if dsm_name:
-                return ctypes.WinDLL(dsm_name)
+        # On Windows default to major version 1 since version 2 is not supported
+        # by almost all scanners
+        return 1 or requested_protocol_major_version
+    else:
+        return 2 or requested_protocol_major_version
+
+
+def _get_dsm(dsm_name, protocol_major_version):
+    if _is_windows():
+        if dsm_name:
+            return ctypes.WinDLL(dsm_name)
+        else:
+            if protocol_major_version == 1:
+                dsm_name = os.path.join(os.environ["WINDIR"], 'twain_32.dll')
             else:
-                dsm_name = 'twaindsm.dll'
-                try:
-                    return ctypes.WinDLL(dsm_name)
-                except WindowsError:
-                    dsm_name = 'twain_32.dll'
-                    return ctypes.WinDLL(dsm_name)
+                dsm_name = "twaindsm.dll"
+        try:
+            logger.info("attempting to load dll: %s", dsm_name)
+            return ctypes.WinDLL(dsm_name)
         except WindowsError as e:
+            logger.error("load failed with error %s", e)
             raise excSMLoadFileFailed(e)
     else:
         return ctypes.CDLL('/System/Library/Frameworks/TWAIN.framework/TWAIN')
@@ -2189,12 +2213,13 @@ class SourceManager(object):
                  Country=TWCY_USA,
                  Info="",
                  ProductName="TWAIN Python Interface",
-                 ProtocolMajor=TWON_PROTOCOLMAJOR,
-                 ProtocolMinor=TWON_PROTOCOLMINOR,
+                 ProtocolMajor=None,
+                 ProtocolMinor=None,
                  SupportedGroups=DG_IMAGE | DG_CONTROL,
                  Manufacturer="Kevin Gill",
                  ProductFamily="TWAIN Python Interface",
-                 dsm_name = None):
+                 dsm_name=None,
+                 ):
         """Constructor for a TWAIN Source Manager Object. This
         constructor has one position argument, parent_window, which
         should contain .
@@ -2233,7 +2258,8 @@ class SourceManager(object):
                 self._hwnd = 0
             else:
                 self._hwnd = int(parent_window)
-        twain_dll = _get_dsm(dsm_name)
+        protocol_major = _get_protocol_major_version(ProtocolMajor)
+        twain_dll = _get_dsm(dsm_name, protocol_major_version=protocol_major)
         try:
             self._entry = twain_dll['DSM_Entry']
         except AttributeError as e:
@@ -2251,8 +2277,8 @@ class SourceManager(object):
                                                       Language=Language,
                                                       Country=Country,
                                                       Info=Info.encode('utf8')),
-                                   ProtocolMajor=ProtocolMajor,
-                                   ProtocolMinor=ProtocolMinor,
+                                   ProtocolMajor=protocol_major,
+                                   ProtocolMinor=0,
                                    SupportedGroups=SupportedGroups | DF_APP2,
                                    Manufacturer=Manufacturer.encode('utf8'),
                                    ProductFamily=ProductFamily.encode('utf8'),
@@ -2283,7 +2309,7 @@ class SourceManager(object):
             self._encoding = sys.getfilesystemencoding()
             self._encode = lambda s: s.encode(self._encoding)
             self._decode = lambda s: s.decode(self._encoding)
-            
+        logger.info("DSM initialized")
         self._state = 'open'
         
     def __del__(self):
@@ -2335,6 +2361,7 @@ class SourceManager(object):
             raise Exception('Unexpected result: %d' % rv)
         
     def _user_select(self):
+        logger.info("starting source selection dialog")
         ds_id = TW_IDENTITY()
         rv = self._call(None,
                         DG_CONTROL,
@@ -2343,11 +2370,14 @@ class SourceManager(object):
                         byref(ds_id),
                         (TWRC_SUCCESS, TWRC_CANCEL))
         if rv == TWRC_SUCCESS:
+            logger.info("user selected source with id %s", ds_id.Id)
             return ds_id
         elif rv == TWRC_CANCEL:
+            logger.info("user cancelled selection")
             return None
         
     def _open_ds(self, ds_id):
+        logger.info("opening data source with id %s", ds_id.Id)
         self._call(None,
                    DG_CONTROL,
                    DAT_IDENTITY,
@@ -2355,6 +2385,7 @@ class SourceManager(object):
                    byref(ds_id))
         
     def _close_ds(self, ds_id):
+        logger.info("closing data source with id %s", ds_id.Id)
         self._call(None,
                    DG_CONTROL,
                    DAT_IDENTITY,
@@ -2633,7 +2664,9 @@ def acquire(path,
             frame=None,
             parent_window=None,
             show_ui=False,
-            dsm_name=None):
+            dsm_name=None,
+            modal=False,
+            ):
     """Acquires single image into file
 
     :param path: Path where to save image
@@ -2686,7 +2719,7 @@ def acquire(path,
                     raise CancelAll
         
             try:
-                sd.acquire_file(before=before, after=after, show_ui=show_ui)
+                sd.acquire_file(before=before, after=after, show_ui=show_ui, modal=modal)
             except excDSTransferCancelled:
                 return None
         finally:
