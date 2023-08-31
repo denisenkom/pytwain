@@ -15,9 +15,9 @@ logging.basicConfig(level=logging.INFO)
 class MyTestCase(unittest.TestCase):
     def test_allocation(self):
         handle = twain.global_handle_allocate(flags=0, size=10)
-        assert twain._GlobalSize(handle) == 10
-        twain._GlobalLock(handle)
-        twain._GlobalUnlock(handle)
+        assert twain.GlobalSize(handle) == 10
+        twain.GlobalLock(handle)
+        twain.GlobalUnlock(handle)
         twain.global_handle_free(handle)
 
     def test_dsm(self):
