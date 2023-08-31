@@ -6,13 +6,6 @@
 Welcome to pytwain's documentation!
 ===================================
 
-Contents:
-
-.. toctree::
-   :maxdepth: 2
-
-   twain
-
 Overview
 ========
 
