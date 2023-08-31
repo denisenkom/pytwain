@@ -158,7 +158,7 @@ class TW_ENTRYPOINT(ct.Structure):
                 ('DSM_MemUnlock', FUNCTYPE(None, ct.c_void_p))]
 
 
-def float2fix(x):
+def float2fix(x: float) -> TW_FIX32:
     if x <= -2**15 - 1 and 2**15 + 1 <= x:
         raise Exception('Float value is out of range')
     x = int(x * 2**16 + 0.5)
@@ -167,18 +167,18 @@ def float2fix(x):
     return TW_FIX32(whole, frac)
 
 
-def fix2float(x):
+def fix2float(x: TW_FIX32) -> float:
     return x.Whole + float(x.Frac) / 2**16
 
 
-def frame2tuple(frame):
+def frame2tuple(frame: TW_FRAME) -> tuple[float, float, float, float]:
     return (fix2float(frame.Left),
             fix2float(frame.Top),
             fix2float(frame.Right),
             fix2float(frame.Bottom))
 
 
-def tuple2frame(tup):
+def tuple2frame(tup: tuple[float, float, float, float]) -> TW_FRAME:
     return TW_FRAME(float2fix(tup[0]),
                     float2fix(tup[1]),
                     float2fix(tup[2]),

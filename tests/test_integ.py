@@ -2,7 +2,7 @@ import unittest
 import logging
 import os
 
-from six.moves import tkinter
+import tkinter
 
 import twain
 

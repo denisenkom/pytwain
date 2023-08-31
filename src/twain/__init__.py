@@ -2,6 +2,7 @@ import logging
 import os
 import ctypes as ct
 import sys
+import typing
 import weakref
 from . import windows
 from . import utils
@@ -33,7 +34,6 @@ _exc_mapping = {TWCC_SUCCESS: excTWCC_SUCCESS,
                 TWCC_FILEWRITEERROR: excTWCC_FILEWRITEERROR,
                 TWCC_CHECKDEVICEONLINE: excTWCC_CHECKDEVICEONLINE}
 
-
 _ext_to_type = {'.bmp': TWFF_BMP,
                 '.jpg': TWFF_JFIF,
                 '.jpeg': TWFF_JFIF,
@@ -41,7 +41,6 @@ _ext_to_type = {'.bmp': TWFF_BMP,
                 '.tiff': TWFF_TIFF,
                 '.tif': TWFF_TIFF,
                 }
-
 
 _mapping = {TWTY_INT8: ct.c_int8,
             TWTY_UINT8: ct.c_uint8,
@@ -52,17 +51,17 @@ _mapping = {TWTY_INT8: ct.c_int8,
             TWTY_BOOL: ct.c_uint16,
             TWTY_FIX32: TW_FIX32,
             TWTY_FRAME: TW_FRAME,
-            TWTY_STR32: ct.c_char*34,
-            TWTY_STR64: ct.c_char*66,
-            TWTY_STR128: ct.c_char*130,
-            TWTY_STR255: ct.c_char*255}
+            TWTY_STR32: ct.c_char * 34,
+            TWTY_STR64: ct.c_char * 66,
+            TWTY_STR128: ct.c_char * 130,
+            TWTY_STR255: ct.c_char * 255}
 
 
-def _is_good_type(type_id):
+def _is_good_type(type_id: int) -> bool:
     return type_id in list(_mapping.keys())
 
 
-def _struct2dict(struct, decode):
+def _struct2dict(struct, decode) -> dict[str, typing.Any]:
     result = {}
     for field, _ in struct._fields_:
         value = getattr(struct, field)
@@ -79,22 +78,26 @@ def _struct2dict(struct, decode):
 
 
 if utils.is_windows():
-    def _twain1_alloc(size):
+    def _twain1_alloc(size: int) -> ct.c_void_p:
         return windows.GlobalAlloc(windows.GMEM_ZEROINIT, size)
+
 
     _twain1_free = windows.GlobalFree
     _twain1_lock = windows.GlobalLock
     _twain1_unlock = windows.GlobalUnlock
 else:
     # Mac
-    def _twain1_alloc(size):
+    def _twain1_alloc(size: int) -> ct.c_void_p:
         return ct.libc.malloc(size)
+
 
     def _twain1_lock(handle):
         return handle
 
+
     def _twain1_unlock(handle):
         pass
+
 
     def _twain1_free(handle):
         return ct.libc.free(handle)
@@ -112,7 +115,7 @@ class _Image(object):
         self._free(self._handle)
         self._handle = None
 
-    def save(self, filepath):
+    def save(self, filepath: str):
         """Saves in-memory image to BMP file"""
         windows.dib_write(self._handle, filepath, self._lock, self._unlock)
 
@@ -125,7 +128,7 @@ class Source(object):
     :meth:`SourceManager.open_source`
     """
 
-    def __init__(self, sm, ds_id):
+    def __init__(self, sm, ds_id: TW_IDENTITY):
         self._sm = sm
         self._id = ds_id
         self._state = 'open'
@@ -168,17 +171,17 @@ class Source(object):
             self._state = 'closed'
             self._sm = None
 
-    def _call(self, dg, dat, msg, buf, expected_returns=(TWRC_SUCCESS,)):
+    def _call(self, dg: int, dat: int, msg: int, buf, expected_returns=(TWRC_SUCCESS,)) -> int:
         return self._sm._call(self._id, dg, dat, msg, buf, expected_returns)
 
-    def _get_capability(self, cap, current):
+    def _get_capability(self, cap: int, current: int):
         twCapability = TW_CAPABILITY(cap, TWON_DONTCARE16, 0)
         self._call(DG_CONTROL, DAT_CAPABILITY, current, ct.byref(twCapability))
         try:
             ptr = self._lock(twCapability.hContainer)
             try:
                 if twCapability.ConType == TWON_ONEVALUE:
-                    type_id = ct.cast(ptr, ct.POINTER(ct.c_uint16))[0]
+                    type_id = int(ct.cast(ptr, ct.POINTER(ct.c_uint16))[0])
                     if not _is_good_type(type_id):
                         msg = "Capability Code = %d, Format Code = %d, Item Type = %d" % (cap,
                                                                                           twCapability.ConType,
@@ -231,7 +234,7 @@ class Source(object):
         finally:
             self._free(twCapability.hContainer)
 
-    def get_capability(self, cap):
+    def get_capability(self, cap: int):
         """This function is used to return the capability information from the source.
         If the capability is not supported, an exception should be returned.
         Capabilities are returned as a tuple of a type (TWTY_*) and a value.
@@ -247,7 +250,7 @@ class Source(object):
         """
         return self._get_capability(cap, MSG_GET)
 
-    def get_capability_current(self, cap):
+    def get_capability_current(self, cap: int):
         """This function is used to return the current value of a capability from the source.
         If the capability is not supported, an exception should be returned.
         Capabilities are returned as a tuple of a type (TWTY_*) and a value.
@@ -263,7 +266,7 @@ class Source(object):
         """
         return self._get_capability(cap, MSG_GETCURRENT)
 
-    def get_capability_default(self, cap):
+    def get_capability_default(self, cap: int):
         """This function is used to return the default value of a capability from the source.
         If the capability is not supported, an exception should be returned.
         Capabilities are returned as a tuple of a type (TWTY_*) and a value.
@@ -280,14 +283,14 @@ class Source(object):
         return self._get_capability(cap, MSG_GETDEFAULT)
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Get the name of the source. This can be used later for
         connecting to the same source.
         """
         return self._decode(self._id.ProductName)
 
     @property
-    def identity(self):
+    def identity(self) -> dict:
         """This function is used to retrieve information about the source.
         driver. The information is returned in a dictionary.
         """
@@ -295,7 +298,7 @@ class Source(object):
         res.update(_struct2dict(self._id.Version, self._decode))
         return res
 
-    def set_capability(self, cap, type_id, value):
+    def set_capability(self, cap: int, type_id: int, value: int | float | tuple):
         """This function is used to set the value of a capability in the source.
         Three parameters are required, a Capability Identifier (lowlevel.CAP_* or
         lowlevel.ICAP_*) a value type (lowlevel.TWTY_*) and a value
@@ -334,7 +337,7 @@ class Source(object):
         if rv == TWRC_CHECKSTATUS:
             raise CheckStatus
 
-    def reset_capability(self, cap):
+    def reset_capability(self, cap: int):
         """This function is used to reset the value of a capability to the source default.
 
         :param cap: Capability Identifier (lowlevel.CAP_* or lowlevel.ICAP_*).
@@ -342,7 +345,7 @@ class Source(object):
         cap = TW_CAPABILITY(Cap=cap)
         self._call(DG_CONTROL, DAT_CAPABILITY, MSG_RESET, ct.byref(cap))
 
-    def set_image_layout(self, frame, document_number=1, page_number=1, frame_number=1):
+    def set_image_layout(self, frame: tuple[float, float, float, float], document_number: int = 1, page_number: int = 1, frame_number: int = 1):
         """This function is used to inform the source of the Image Layout.
 
         It uses a tuple containing frame coordinates, document
@@ -360,7 +363,7 @@ class Source(object):
         if rv == TWRC_CHECKSTATUS:
             raise CheckStatus
 
-    def get_image_layout(self):
+    def get_image_layout(self) -> tuple[tuple[float, float, float, float], int, int, int]:
         """This function is used to ask the source for Image Layout.
 
         It returns a tuple containing frame coordinates, document
@@ -372,7 +375,7 @@ class Source(object):
         self._call(DG_IMAGE, DAT_IMAGELAYOUT, MSG_GET, ct.byref(il))
         return frame2tuple(il.Frame), il.DocumentNumber, il.PageNumber, il.FrameNumber
 
-    def get_image_layout_default(self):
+    def get_image_layout_default(self) -> tuple[tuple[float, float, float, float], int, int, int]:
         """This function is used to ask the source for default Image Layout.
 
         It returns a tuple containing frame coordinates, document
@@ -389,7 +392,7 @@ class Source(object):
         il = TW_IMAGELAYOUT()
         self._call(DG_IMAGE, DAT_IMAGELAYOUT, MSG_RESET, ct.byref(il))
 
-    def _enable(self, show_ui, modal_ui, hparent):
+    def _enable(self, show_ui: bool, modal_ui: bool, hparent):
         """This function is used to ask the source to begin aquistion.
         Parameters:
             show_ui - bool
@@ -406,7 +409,7 @@ class Source(object):
         self._call(DG_CONTROL, DAT_USERINTERFACE, MSG_DISABLEDS, ct.byref(ui))
         self._state = 'open'
 
-    def _process_event(self, msg_ref):
+    def _process_event(self, msg_ref) -> tuple[int, int]:
         """The TWAIN interface requires that the windows events
         are available to both the application and the lowlevel
         source (which operates in the same process).
@@ -426,7 +429,7 @@ class Source(object):
             self._state = 'ready'
         return rv, event.TWMessage
 
-    def _modal_loop(self, callback):
+    def _modal_loop(self, callback: typing.Callable[[int], None]):
         logger.info("entering modal loop")
         done = False
         msg = MSG()
@@ -445,10 +448,10 @@ class Source(object):
                 windows.DispatchMessage(ct.byref(msg))
         logger.info("exited modal loop")
 
-    def _acquire(self, callback, show_ui=True, modal=False):
+    def _acquire(self, callback: typing.Callable[[], int], show_ui: bool = True, modal: bool = False):
         self._enable(show_ui, modal, self._sm._hwnd)
         try:
-            def callback_lolevel(event):
+            def callback_lolevel(event: int):
                 if event == MSG_XFERREADY:
                     logger.info("got MSG_XFERREADY message")
                     more = True
@@ -464,7 +467,7 @@ class Source(object):
             self._disable()
 
     @property
-    def file_xfer_params(self):
+    def file_xfer_params(self) -> tuple[str, int]:
         """ Property which stores tuple of (file name, format) where format is one of TWFF_*
 
         This property is used by :meth:`xfer_image_by_file`
@@ -476,13 +479,13 @@ class Source(object):
         return self._decode(sfx.FileName), sfx.Format
 
     @file_xfer_params.setter
-    def file_xfer_params(self, params):
+    def file_xfer_params(self, params: tuple[str, int]):
         (path, fmt) = params
         sfx = TW_SETUPFILEXFER(self._encode(path), fmt, 0)
         self._call(DG_CONTROL, DAT_SETUPFILEXFER, MSG_SET, ct.byref(sfx))
 
     @property
-    def image_info(self):
+    def image_info(self) -> dict:
         """This function is used to ask the source for Image Info.
         Normally, the application is notified that the image is
         ready for transfer using the message loop. However, it is
@@ -508,7 +511,7 @@ class Source(object):
                 "PixelType": ii.PixelType,
                 "Compression": ii.Compression}
 
-    def _get_native_image(self):
+    def _get_native_image(self) -> [int, ct.c_void_p]:
         hbitmap = ct.c_void_p()
         rv = self._call(DG_IMAGE,
                         DAT_IMAGENATIVEXFER,
@@ -517,21 +520,21 @@ class Source(object):
                         (TWRC_XFERDONE, TWRC_CANCEL))
         return rv, hbitmap
 
-    def _get_file_image(self):
+    def _get_file_image(self) -> int:
         return self._call(DG_IMAGE,
                           DAT_IMAGEFILEXFER,
                           MSG_GET,
                           None,
                           (TWRC_XFERDONE, TWRC_CANCEL))
 
-    def _get_file_audio(self):
+    def _get_file_audio(self) -> int:
         return self._call(DG_AUDIO,
                           DAT_AUDIOFILEXFER,
                           MSG_GET,
                           None,
                           (TWRC_XFERDONE, TWRC_CANCEL))
 
-    def _end_xfer(self):
+    def _end_xfer(self) -> int:
         px = TW_PENDINGXFERS()
         self._call(DG_CONTROL, DAT_PENDINGXFERS, MSG_ENDXFER, ct.byref(px))
         if px.Count == 0:
@@ -544,7 +547,7 @@ class Source(object):
         self._call(DG_CONTROL, DAT_PENDINGXFERS, MSG_RESET, ct.byref(px))
         self._state = 'enabled'
 
-    def request_acquire(self, show_ui, modal_ui):
+    def request_acquire(self, show_ui: bool, modal_ui: bool):
         """This function is used to ask the source to begin acquisition.
 
         Transitions Source to state 5.
@@ -573,7 +576,7 @@ class Source(object):
         """
         self._disable()
 
-    def xfer_image_natively(self):
+    def xfer_image_natively(self) -> tuple[typing.Any, int]:
         """Perform a 'Native' form transfer of the image.
 
         When successful, this routine returns two values,
@@ -593,13 +596,13 @@ class Source(object):
             raise excDSTransferCancelled
         return handle.value, more
 
-    def xfer_image_by_file(self):
+    def xfer_image_by_file(self) -> int:
         """Perform a file based transfer of the image.
 
         When successful, the file is saved to the image file,
         defined in a previous call to :meth:`file_xfer_params`.
 
-        Returns  the number of pending transfers
+        Returns the number of pending transfers
 
         If remaining number of images is zero Source will
         transition to state 5, otherwise it stays in state 6
@@ -614,8 +617,8 @@ class Source(object):
             raise excDSTransferCancelled
         return more
 
-    def acquire_file(self, before, after=lambda more: None, show_ui=True, modal=False):
-        """Acquires one ore more images as files. Call returns when acquisition complete.
+    def acquire_file(self, before: typing.Callable[[dict], str], after: typing.Callable[[int], None] = lambda more: None, show_ui: bool = True, modal: bool = False):
+        """Acquires one or more images as files. Call returns when acquisition complete.
 
         :param before: Callback called before each acquired file, it should return
                        full file path. It can also throw CancelAll to cancel acquisition
@@ -659,8 +662,8 @@ class Source(object):
         self.set_capability(ICAP_XFERMECH, TWTY_UINT16, TWSX_FILE)
         self._acquire(callback, show_ui, modal)
 
-    def acquire_natively(self, after, before=lambda img_info: None, show_ui=True, modal=False):
-        """Acquires one ore more images in memory. Call returns when acquisition complete
+    def acquire_natively(self, after: typing.Callable[[_Image, int], None], before: typing.Callable[[dict], str] = lambda img_info: None, show_ui: bool = True, modal: bool = False):
+        """Acquires one or more images in memory. Call returns when acquisition complete
 
         :param after: Callback called after each acquired file, it receives an image object and
                      number of images remaining. It can throw CancelAll to cancel remaining
@@ -671,7 +674,7 @@ class Source(object):
         :keyword modal:   If True source's UI will be modal
         """
 
-        def callback():
+        def callback() -> int:
             before(self.image_info)
             rv, handle = self._get_native_image()
             more = self._end_xfer()
@@ -767,7 +770,7 @@ class Source(object):
         return self.xfer_image_by_file()
 
 
-def _get_protocol_major_version(requested_protocol_major_version):
+def _get_protocol_major_version(requested_protocol_major_version: None | int) -> int:
     if requested_protocol_major_version not in [None, 1, 2]:
         raise ValueError("Invalid protocol version specified")
     if utils.is_windows():
@@ -778,7 +781,7 @@ def _get_protocol_major_version(requested_protocol_major_version):
         return 2 or requested_protocol_major_version
 
 
-def _get_dsm(dsm_name, protocol_major_version):
+def _get_dsm(dsm_name: str | None, protocol_major_version: int) -> ct.WinDLL | ct.CDLL:
     if utils.is_windows():
         if dsm_name:
             return ct.WinDLL(dsm_name)
@@ -798,22 +801,32 @@ def _get_dsm(dsm_name, protocol_major_version):
 
 
 class SourceManager(object):
-    """Represents a Data Source Manager connection"""
+    """Represents a Data Source Manager connection.
+
+    This is the first class that you need to create.
+
+    From instance of this class you can list existing sources using :func:`source_list` property.
+
+    You can open source using :func:`open_source` method and then use methods on
+    the returned object to perform scanning.
+
+    When done call :func:`close` method to release resources.
+    """
 
     def __init__(self,
                  parent_window=None,
-                 MajorNum=1,
-                 MinorNum=0,
-                 Language=TWLG_USA,
-                 Country=TWCY_USA,
-                 Info="",
-                 ProductName="TWAIN Python Interface",
-                 ProtocolMajor=None,
-                 ProtocolMinor=None,
-                 SupportedGroups=DG_IMAGE | DG_CONTROL,
-                 Manufacturer="Kevin Gill",
-                 ProductFamily="TWAIN Python Interface",
-                 dsm_name=None,
+                 MajorNum: int = 1,
+                 MinorNum: int = 0,
+                 Language: int = TWLG_USA,
+                 Country: int = TWCY_USA,
+                 Info: str = "",
+                 ProductName: str = "TWAIN Python Interface",
+                 ProtocolMajor: int = None,
+                 ProtocolMinor: int = None,
+                 SupportedGroups: int = DG_IMAGE | DG_CONTROL,
+                 Manufacturer: str = "pytwain",
+                 ProductFamily: str = "TWAIN Python Interface",
+                 dsm_name: str = None,
                  ):
         """Constructor for a TWAIN Source Manager Object. This
         constructor has one position argument, parent_window, which
@@ -934,7 +947,7 @@ class SourceManager(object):
             self._close_dsm()
             self._state = 'closed'
 
-    def _call(self, dest_id, dg, dat, msg, buf, expected_returns=()):
+    def _call(self, dest_id, dg: int, dat: int, msg: int, buf: typing.Any, expected_returns: tuple[int, ...] = ()) -> int:
         rv = self._entry(self._app_id, dest_id, dg, dat, msg, buf)
         if rv == TWRC_SUCCESS or rv in expected_returns:
             return rv
@@ -987,13 +1000,13 @@ class SourceManager(object):
                    MSG_CLOSEDS,
                    ct.byref(ds_id))
 
-    def open_source(self, product_name=None):
+    def open_source(self, product_name: str = None) -> Source | None:
         """Open a TWAIN Source.
 
-        Returns a :class:`Source` Object, which can be used to communicate with the source or None if user cancelled
+        Returns a :class:`Source` object, which can be used to communicate with the source or `None` if user cancelled
         source selection dialog.
 
-        :keyword product_name: source to be opened, if not specified or value is None user will be prompted for
+        :keyword product_name: source to be opened, if not specified or value is `None` user will be prompted for
                                source selection
         """
         if product_name:
@@ -1008,7 +1021,7 @@ class SourceManager(object):
         return source
 
     @property
-    def identity(self):
+    def identity(self) -> dict:
         """This property is used to retrieve the identity of our application.
         The information is returned in a dictionary.
         """
@@ -1017,8 +1030,8 @@ class SourceManager(object):
         return res
 
     @property
-    def source_list(self):
-        """Returns a list containing the names of the available source."""
+    def source_list(self) -> list[str]:
+        """Returns a list containing the names of available sources"""
         names = []
         ds_id = TW_IDENTITY()
         try:
@@ -1048,7 +1061,7 @@ class SourceManager(object):
         """
         self._cb = cb
 
-    def is_twain2(self):
+    def is_twain2(self) -> bool:
         return self._version2
 
     # backward compatible aliases
@@ -1073,10 +1086,9 @@ class SourceManager(object):
         return self.source_list
 
 
-def version():
+def version() -> str:
     """Retrieve the version of the module"""
     return '2.0'
-
 
 
 def acquire(path,
