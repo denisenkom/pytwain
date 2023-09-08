@@ -1,6 +1,7 @@
 import ctypes as ct
 import warnings
 from . import exceptions
+from . import utils
 
 
 def _win_check(result, func, args):
@@ -24,28 +25,29 @@ def _win_check(result, func, args):
         return result
 
 
-GlobalLock = ct.windll.kernel32.GlobalLock
-GlobalLock.argtypes = [ct.c_void_p]
-GlobalLock.restype = ct.c_void_p
-GlobalLock.errcheck = _win_check
-GlobalUnlock = ct.windll.kernel32.GlobalUnlock
-GlobalUnlock.argtypes = [ct.c_void_p]
-GlobalUnlock.errcheck = _win_check
-GlobalAlloc = ct.windll.kernel32.GlobalAlloc
-GlobalAlloc.restype = ct.c_void_p
-GlobalAlloc.errcheck = _win_check
-GlobalFree = ct.windll.kernel32.GlobalFree
-GlobalFree.argtypes = [ct.c_void_p]
-GlobalFree.errcheck = _win_check
-GlobalSize = ct.windll.kernel32.GlobalSize
-GlobalSize.argtypes = [ct.c_void_p]
-GlobalSize.restype = ct.c_size_t
-GlobalSize.errcheck = _win_check
-GetMessage = ct.windll.user32.GetMessageW
-TranslateMessage = ct.windll.user32.TranslateMessage
-TranslateMessage.errcheck = _win_check
-DispatchMessage = ct.windll.user32.DispatchMessageW
-DispatchMessage.errcheck = _win_check
+if utils.is_windows():
+    GlobalLock = ct.windll.kernel32.GlobalLock
+    GlobalLock.argtypes = [ct.c_void_p]
+    GlobalLock.restype = ct.c_void_p
+    GlobalLock.errcheck = _win_check
+    GlobalUnlock = ct.windll.kernel32.GlobalUnlock
+    GlobalUnlock.argtypes = [ct.c_void_p]
+    GlobalUnlock.errcheck = _win_check
+    GlobalAlloc = ct.windll.kernel32.GlobalAlloc
+    GlobalAlloc.restype = ct.c_void_p
+    GlobalAlloc.errcheck = _win_check
+    GlobalFree = ct.windll.kernel32.GlobalFree
+    GlobalFree.argtypes = [ct.c_void_p]
+    GlobalFree.errcheck = _win_check
+    GlobalSize = ct.windll.kernel32.GlobalSize
+    GlobalSize.argtypes = [ct.c_void_p]
+    GlobalSize.restype = ct.c_size_t
+    GlobalSize.errcheck = _win_check
+    GetMessage = ct.windll.user32.GetMessageW
+    TranslateMessage = ct.windll.user32.TranslateMessage
+    TranslateMessage.errcheck = _win_check
+    DispatchMessage = ct.windll.user32.DispatchMessageW
+    DispatchMessage.errcheck = _win_check
 
 GMEM_ZEROINIT = 0x0040
 

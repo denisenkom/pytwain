@@ -781,7 +781,7 @@ def _get_protocol_major_version(requested_protocol_major_version: None | int) ->
         return 2 or requested_protocol_major_version
 
 
-def _get_dsm(dsm_name: str | None, protocol_major_version: int) -> ct.WinDLL | ct.CDLL:
+def _get_dsm(dsm_name: str | None, protocol_major_version: int) -> ct.CDLL:
     if utils.is_windows():
         if dsm_name:
             return ct.WinDLL(dsm_name)
