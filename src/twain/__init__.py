@@ -783,10 +783,11 @@ def _get_protocol_major_version(requested_protocol_major_version: None | int) ->
 
 def _get_dsm(dsm_name: str | None, protocol_major_version: int) -> ct.CDLL:
     if utils.is_windows():
+        is64bit = sys.maxsize > 2**32
         if dsm_name:
             return ct.WinDLL(dsm_name)
         else:
-            if protocol_major_version == 1:
+            if protocol_major_version == 1 and not is64bit:
                 dsm_name = os.path.join(os.environ["WINDIR"], 'twain_32.dll')
             else:
                 dsm_name = "twaindsm.dll"
