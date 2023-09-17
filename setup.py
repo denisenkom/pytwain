@@ -1,12 +1,13 @@
 from distutils.core import setup
+import version
 
 setup(name='pytwain',
-      version='2.0',
+      version=version.get_git_version(),
       author='Mikhail Denisenko',
       author_email='denisenkom@gmail.com',
       url='https://github.com/denisenkom/pytwain',
       package_dir={'': 'src'},
-      py_modules=['twain'],
+      packages=['twain', 'twain.lowlevel'],
       description="TWAIN API for accessing scanners, cameras, etc on Windows",
       classifiers=[
           'Development Status :: 4 - Beta',
