@@ -1,3 +1,8 @@
+Contents
+========
+.. toctree::
+   :maxdepth: 2
+
 `twain` -- main module
 ======================
 

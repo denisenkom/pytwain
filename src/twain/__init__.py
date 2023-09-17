@@ -4,6 +4,7 @@ import ctypes as ct
 import sys
 import typing
 import weakref
+import enum
 from . import windows
 from . import utils
 from .exceptions import *
@@ -120,6 +121,19 @@ class _Image(object):
         windows.dib_write(self._handle, filepath, self._lock, self._unlock)
 
 
+class _SourceState(enum.Enum):
+    """
+    States of TWAIN data source according to TWAIN specification
+    https://twain.org/wp-content/uploads/2016/03/TWAIN-2.2-Spec.pdf
+    page 24
+    """
+    CLOSED = 3
+    OPEN = 4
+    ENABLED = 5
+    TRANSFER_READY = 6
+    TRANSFERRING = 7
+
+
 class Source(object):
     """
     This object represents connection to Data Source.
@@ -131,8 +145,9 @@ class Source(object):
     def __init__(self, sm, ds_id: TW_IDENTITY):
         self._sm = sm
         self._id = ds_id
-        self._state = 'open'
+        self._state = _SourceState.OPEN
         self._version2 = bool(ds_id.SupportedGroups & DF_DS2)
+        self._acquire_requested = False
         if self._version2:
             self._alloc = sm._alloc
             self._free = sm._free
@@ -162,13 +177,13 @@ class Source(object):
         """This method is used to close the data source object.
         It gives finer control over this connects than relying on garbage collection.
         """
-        if self._state == 'ready':
+        if self._state == _SourceState.TRANSFER_READY:
             self._end_all_xfers()
-        if self._state == 'enabled':
-            self._disable()
-        if self._state == 'open':
+        if self._state == _SourceState.ENABLED:
+            self.disable()
+        if self._state == _SourceState.OPEN:
             self._sm._close_ds(self._id)
-            self._state = 'closed'
+            self._state = _SourceState.CLOSED
             self._sm = None
 
     def _call(self, dg: int, dat: int, msg: int, buf, expected_returns=(TWRC_SUCCESS,)) -> int:
@@ -401,13 +416,14 @@ class Source(object):
         ui = TW_USERINTERFACE(ShowUI=show_ui, ModalUI=modal_ui, hParent=hparent)
         logger.info("starting scan")
         self._call(DG_CONTROL, DAT_USERINTERFACE, MSG_ENABLEDS, ct.byref(ui))
-        self._state = 'enabled'
+        self._state = _SourceState.ENABLED
 
-    def _disable(self):
+    def disable(self):
         """This function is used to ask the source to hide the user interface."""
+        logger.info("making call to hide UI")
         ui = TW_USERINTERFACE()
         self._call(DG_CONTROL, DAT_USERINTERFACE, MSG_DISABLEDS, ct.byref(ui))
-        self._state = 'open'
+        self._state = _SourceState.OPEN
 
     def _process_event(self, msg_ref) -> tuple[int, int]:
         """The TWAIN interface requires that the windows events
@@ -426,7 +442,7 @@ class Source(object):
         logger.debug("handling event result %d", rv)
         if event.TWMessage == MSG_XFERREADY:
             logger.info("transfer is ready")
-            self._state = 'ready'
+            self._state = _SourceState.TRANSFER_READY
         return rv, event.TWMessage
 
     def _modal_loop(self, callback: typing.Callable[[int], None]):
@@ -464,7 +480,7 @@ class Source(object):
 
             self._modal_loop(callback_lolevel)
         finally:
-            self._disable()
+            self.disable()
 
     @property
     def file_xfer_params(self) -> tuple[str, int]:
@@ -538,14 +554,15 @@ class Source(object):
         px = TW_PENDINGXFERS()
         self._call(DG_CONTROL, DAT_PENDINGXFERS, MSG_ENDXFER, ct.byref(px))
         if px.Count == 0:
-            self._state = 'enabled'
+            self._state = _SourceState.ENABLED
+            self._acquire_requested = False
         return px.Count
 
     def _end_all_xfers(self):
         """Cancel all outstanding transfers on the data source."""
         px = TW_PENDINGXFERS()
         self._call(DG_CONTROL, DAT_PENDINGXFERS, MSG_RESET, ct.byref(px))
-        self._state = 'enabled'
+        self._state = _SourceState.ENABLED
 
     def request_acquire(self, show_ui: bool, modal_ui: bool):
         """This function is used to ask the source to begin acquisition.
@@ -557,7 +574,10 @@ class Source(object):
 
         Valid states: 4
         """
+        if self._state != _SourceState.OPEN:
+            raise TwainError(f"request_acquire called at wrong state {self._state.name}")
         self._enable(show_ui, modal_ui, self._sm._hwnd)
+        self._acquire_requested = True
 
     def modal_loop(self):
         """This function should be called after call to :func:`requiest_acquire`
@@ -574,7 +594,7 @@ class Source(object):
 
         Valid states: 5
         """
-        self._disable()
+        self.disable()
 
     def xfer_image_natively(self) -> tuple[typing.Any, int]:
         """Perform a 'Native' form transfer of the image.
@@ -590,6 +610,10 @@ class Source(object):
 
         Valid states: 6
         """
+        if self._state not in [_SourceState.TRANSFER_READY, _SourceState.ENABLED]:
+            raise exceptions.TwainError(f"xfer_image_natively was called at a wrong state {self._state.name}, you probably need to call request_acquire")
+        if self._state == _SourceState.ENABLED and not self._acquire_requested:
+            raise exceptions.TwainError(f"xfer_image_natively was called at a wrong state {self._state.name}, you probably need to call request_acquire again")
         rv, handle = self._get_native_image()
         more = self._end_xfer()
         if rv == TWRC_CANCEL:
@@ -892,6 +916,7 @@ class SourceManager(object):
                                    Manufacturer=Manufacturer.encode('utf8'),
                                    ProductFamily=ProductFamily.encode('utf8'),
                                    ProductName=ProductName.encode('utf8'))
+        logger.info("Opening Data Source Manager (DSM)")
         self._call(None, DG_CONTROL, DAT_PARENT, MSG_OPENDSM, ct.byref(ct.c_void_p(self._hwnd)))
         self._version2 = bool(self._app_id.SupportedGroups & DF_DSM2)
         if self._version2:
