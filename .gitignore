@@ -36,3 +36,5 @@ nosetests.xml
 /.idea
 /tests/*.bmp
 /venv
+/venv64
+/testscans

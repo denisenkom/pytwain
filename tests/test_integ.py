@@ -39,33 +39,33 @@ class MyTestCase(unittest.TestCase):
         root = tkinter.Tk()
         root.title('scan.py')
         logger.info('creating source manager')
-        sm = twain.SourceManager(root)
-        logger.info('opening source')
-        ss = sm.open_source()  # this posts a modeless dialog...
-        logger.info('request acquire')
-        ss.request_acquire(show_ui=False, modal_ui=True)
-        handles = []
-        more = 1
-        try:
-            logger.info('transferring image')
-            handle, more = ss.xfer_image_natively()
-            handles.append(handle)
-        except twain.excDSTransferCancelled:
-            logger.info('cancelled')
-            pass
-        while more != 0:
-            try:
-                logger.info('transferring image')
-                handle, more = ss.xfer_image_natively()
-                handles.append(handle)
-            except twain.excDSTransferCancelled:
-                logger.info('cancelled')
-                more = 0
+        with twain.SourceManager(root) as sm:
+            logger.info('opening source')
+            with sm.open_source() as ss:  # this posts a modeless dialog...
+                logger.info('request acquire')
+                ss.request_acquire(show_ui=False, modal_ui=True)
+                handles = []
+                more = 1
+                try:
+                    logger.info('transferring image')
+                    handle, more = ss.xfer_image_natively()
+                    handles.append(handle)
+                except twain.excDSTransferCancelled:
+                    logger.info('cancelled')
+                    pass
+                while more != 0:
+                    try:
+                        logger.info('transferring image')
+                        handle, more = ss.xfer_image_natively()
+                        handles.append(handle)
+                    except twain.excDSTransferCancelled:
+                        logger.info('cancelled')
+                        more = 0
 
-        logger.info('transfer complete')
-        index = 0
-        curr_folder = os.path.dirname(__name__)
-        for handle in handles:
-            twain.dib_to_bm_file(handle, os.path.join(curr_folder, "{}.bmp".format(index)))
-            twain.global_handle_free(handle)
-            index += 1
+                logger.info('transfer complete')
+                index = 0
+                curr_folder = os.path.dirname(__name__)
+                for handle in handles:
+                    twain.dib_to_bm_file(handle, os.path.join(curr_folder, "testscans/{}.bmp".format(index)))
+                    twain.global_handle_free(handle)
+                    index += 1
