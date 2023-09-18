@@ -30,17 +30,32 @@ class excTWCC_BADCAP(TwainError):
     pass
 
 
-class excTWCC_BADDEST(Exception):
+class BadDestination(TwainError):
+    """
+    Operation was sent to invalid Source
+    """
     pass
 
 
-class excTWCC_BADPROTOCOL(Exception):
+TWCC_BADDEST = BadDestination
+
+
+class BadProtocol(TwainError):
+    """
+    Operation is not recognized by Source
+    """
     pass
 
 
-class excTWCC_BUMMER(Exception):
+excTWCC_BADPROTOCOL = BadProtocol
+
+
+class GeneralFailure(TwainError):
     """General failure.  Unload Source immediately."""
     pass
+
+
+excTWCC_BUMMER = GeneralFailure
 
 
 class excTWCC_CAPBADOPERATION(Exception):
