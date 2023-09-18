@@ -1,66 +1,101 @@
 class TwainError(Exception):
+    """
+    Base error for all errors returned by TWAIN driver
+    """
     pass
 
 
-class excCapabilityFormatNotSupported(TwainError):
+class CapabilityFormatNotSupported(TwainError):
+    """
+    Specified capability is not supported by pytwain
+    """
     pass
 
 
-class excDSTransferCancelled(TwainError):
+class DSTransferCancelled(TwainError):
+    """
+    Data transfer was cancelled by user
+    """
     pass
 
 
-class excSMGetProcAddressFailed(TwainError):
+class SMGetProcAddressFailed(TwainError):
+    """
+    Specified driver does not have DSM_Entry symbol defined
+    """
     pass
 
 
-class excSMLoadFileFailed(TwainError):
+class SMLoadFileFailed(TwainError):
+    """
+    Failed to load DLL
+    """
     pass
 
 
-class excSMOpenFailed(TwainError):
+class SMOpenFailed(TwainError):
+    """
+    DSM entry point returned error when called.
+    """
     pass
 
 
-class excImageFormat(Exception):
+class ImageFormatNotSupported(TwainError):
+    """
+    Image has unsupported format.
+    E.g. compressed images are not supported currently.
+    """
     pass
 
 
-class excTWCC_BADCAP(TwainError):
+class BadCapability(TwainError):
+    """
+    Source does not support specified capability.
+    Sources newer than 1.6 do not use report this error.
+    """
     pass
 
 
-class excTWCC_BADDEST(Exception):
+class BadDestination(TwainError):
+    """
+    Operation was sent to invalid Source
+    """
     pass
 
 
-class excTWCC_BADPROTOCOL(Exception):
+class BadProtocol(TwainError):
+    """
+    Operation is not recognized by Source
+    """
     pass
 
 
-class excTWCC_BUMMER(Exception):
+class GeneralFailure(TwainError):
     """General failure.  Unload Source immediately."""
     pass
 
 
-class excTWCC_CAPBADOPERATION(Exception):
+class CapBadOperation(TwainError):
     """Operation (i.e., Get or Set)  not supported on capability."""
     pass
 
 
-class excTWCC_CAPSEQERROR(Exception):
+class CapSeqError(TwainError):
     """Capability has dependencies on other capabilities and
     cannot be operated upon at this time.
     """
     pass
 
 
-class excTWCC_CAPUNSUPPORTED(Exception):
-    """Capability not supported by Source."""
+class CapUnsupported(TwainError):
+    """
+    Capability not supported by Source.
+    Sources with version 1.6 and newer use this error instead of BadCapability error
+    """
     pass
 
 
-class excTWCC_CHECKDEVICEONLINE(Exception):
+class CheckDeviceOnlineError(TwainError):
     """Check the device status using CAP_DEVICEONLINE, this
     condition code can be returned by any TWAIN operation
     in state 4 or higher, or from the state 3 DG_CONTROL /
@@ -71,55 +106,79 @@ class excTWCC_CHECKDEVICEONLINE(Exception):
     pass
 
 
-class excTWCC_DENIED(Exception):
+class DeniedError(TwainError):
+    """
+    Operation denied
+    """
     pass
 
 
-class excTWCC_FILEEXISTS(Exception):
+class FileExistsError(TwainError):
+    """
+    Specified file already exists.
+    """
     pass
 
 
-class excTWCC_FILENOTFOUND(Exception):
+class FileWriteError(TwainError):
+    """
+    Operation failed writing to the file.
+    """
     pass
 
 
-class excTWCC_FILEWRITEERROR(Exception):
+class MaxConnectionsError(TwainError):
+    """
+    Device is connected to maximum number of applications it can support.
+    """
     pass
 
 
-class excTWCC_MAXCONNECTIONS(Exception):
+class NoDataSourceError(TwainError):
+    """
+    No Source found
+    """
     pass
 
 
-class excTWCC_NODS(Exception):
+class NotEmptyError(TwainError):
+    """
+    Directory not empty and cannot be deleted
+    """
     pass
 
 
-class excTWCC_NOTEMPTY(Exception):
+class OperationError(TwainError):
+    """Internal Source error"""
     pass
 
 
-class excTWCC_OPERATIONERROR(Exception):
+class PaperDoubleFeedError(TwainError):
+    """
+    Feeder error.  This error is obsolete but may still be reported by older sources.
+    """
     pass
 
 
-class excTWCC_PAPERDOUBLEFEED(Exception):
+class PaperJam(TwainError):
+    """
+    Paper got stuck in feeder
+    """
     pass
 
 
-class excTWCC_PAPERJAM(Exception):
+class SequenceError(TwainError):
+    """
+    Operation was called at a wrong state
+    """
     pass
 
 
-class excTWCC_SEQERROR(Exception):
-    pass
-
-
-class excTWCC_SUCCESS(Exception):
-    pass
-
-
-class excTWCC_UNKNOWN(Exception):
+class UnknownError(TwainError):
+    """
+    Unknown error code was returned.
+    Probably need to upgrade pytds to newer version.
+    """
     pass
 
 
@@ -133,3 +192,32 @@ class CheckStatus(Exception):
     to fit valid range
     """
     pass
+
+
+# Following exception aliases are deprecated
+# and will be removed in version 2.4.0
+excCapabilityFormatNotSupported = CapabilityFormatNotSupported
+excDSTransferCancelled = DSTransferCancelled
+excSMGetProcAddressFailed = SMGetProcAddressFailed
+excSMLoadFileFailed = SMLoadFileFailed
+excSMOpenFailed = SMOpenFailed
+excImageFormat = ImageFormatNotSupported
+excTWCC_BADCAP = BadCapability
+excTWCC_BADDEST = BadDestination
+excTWCC_BADPROTOCOL = BadProtocol
+excTWCC_BUMMER = GeneralFailure
+excTWCC_CAPBADOPERATION = CapBadOperation
+excTWCC_CAPSEQERROR = CapSeqError
+excTWCC_CAPUNSUPPORTED = CapUnsupported
+excTWCC_CHECKDEVICEONLINE = CheckDeviceOnlineError
+excTWCC_DENIED = DeniedError
+excTWCC_FILEEXISTS = FileExistsError
+excTWCC_FILEWRITEERROR = FileWriteError
+excTWCC_MAXCONNECTIONS = MaxConnectionsError
+excTWCC_NODS = NoDataSourceError
+excTWCC_NOTEMPTY = NotEmptyError
+excTWCC_OPERATIONERROR = OperationError
+excTWCC_PAPERDOUBLEFEED = PaperDoubleFeedError
+excTWCC_PAPERJAM = PaperJam
+excTWCC_SEQERROR = SequenceError
+excTWCC_UNKNOWN = UnknownError
