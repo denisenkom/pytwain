@@ -104,7 +104,7 @@ class TwainBase:
         if self.AcquirePending:
             try:
                 Info = self.SD.GetImageInfo()
-            except twain.excTWCC_SEQERROR:
+            except twain.exceptions.SequenceError:
                 Info = None
             if Info:
                 self.AcquirePending = False

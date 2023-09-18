@@ -1,38 +1,39 @@
 import logging
 import os
-import ctypes as ct
 import sys
 import typing
 import weakref
 from . import windows
 from . import utils
-from .exceptions import *
+from . import exceptions
 from .lowlevel.constants import *
 from .lowlevel.structs import *
 
 logger = logging.getLogger('lowlevel')
 
-_exc_mapping = {TWCC_SUCCESS: excTWCC_SUCCESS,
-                TWCC_BUMMER: excTWCC_BUMMER,
-                TWCC_LOWMEMORY: MemoryError,
-                TWCC_NODS: excTWCC_NODS,
-                TWCC_OPERATIONERROR: excTWCC_OPERATIONERROR,
-                TWCC_BADCAP: excTWCC_BADCAP,
-                TWCC_BADPROTOCOL: excTWCC_BADPROTOCOL,
-                TWCC_BADVALUE: ValueError,
-                TWCC_SEQERROR: excTWCC_SEQERROR,
-                TWCC_BADDEST: excTWCC_BADDEST,
-                TWCC_CAPUNSUPPORTED: excTWCC_CAPUNSUPPORTED,
-                TWCC_CAPBADOPERATION: excTWCC_CAPBADOPERATION,
-                TWCC_CAPSEQERROR: excTWCC_CAPSEQERROR,
-                TWCC_DENIED: excTWCC_DENIED,
-                TWCC_FILEEXISTS: excTWCC_FILEEXISTS,
-                TWCC_FILENOTFOUND: excTWCC_FILENOTFOUND,
-                TWCC_NOTEMPTY: excTWCC_NOTEMPTY,
-                TWCC_PAPERJAM: excTWCC_PAPERJAM,
-                TWCC_PAPERDOUBLEFEED: excTWCC_PAPERDOUBLEFEED,
-                TWCC_FILEWRITEERROR: excTWCC_FILEWRITEERROR,
-                TWCC_CHECKDEVICEONLINE: excTWCC_CHECKDEVICEONLINE}
+_exc_mapping = {
+    TWCC_BUMMER: exceptions.GeneralFailure,
+    TWCC_LOWMEMORY: MemoryError,
+    TWCC_NODS: exceptions.NoDataSourceError,
+    TWCC_OPERATIONERROR: exceptions.OperationError,
+    TWCC_BADCAP: exceptions.BadCapability,
+    TWCC_BADPROTOCOL: exceptions.BadProtocol,
+    TWCC_BADVALUE: ValueError,
+    TWCC_SEQERROR: exceptions.SequenceError,
+    TWCC_BADDEST: exceptions.BadDestination,
+    TWCC_CAPUNSUPPORTED: exceptions.CapUnsupported,
+    TWCC_CAPBADOPERATION: exceptions.CapBadOperation,
+    TWCC_CAPSEQERROR: exceptions.CapSeqError,
+    TWCC_DENIED: exceptions.DeniedError,
+    TWCC_FILEEXISTS: exceptions.FileExistsError,
+    TWCC_FILENOTFOUND: FileNotFoundError,
+    TWCC_NOTEMPTY: exceptions.NotEmptyError,
+    TWCC_PAPERJAM: exceptions.PaperJam,
+    TWCC_PAPERDOUBLEFEED: exceptions.PaperDoubleFeedError,
+    TWCC_FILEWRITEERROR: exceptions.FileWriteError,
+    TWCC_CHECKDEVICEONLINE: exceptions.CheckDeviceOnlineError,
+    TWCC_MAXCONNECTIONS: exceptions.MaxConnectionsError,
+    }
 
 _ext_to_type = {'.bmp': TWFF_BMP,
                 '.jpg': TWFF_JFIF,
@@ -186,7 +187,7 @@ class Source(object):
                         msg = "Capability Code = %d, Format Code = %d, Item Type = %d" % (cap,
                                                                                           twCapability.ConType,
                                                                                           type_id)
-                        raise excCapabilityFormatNotSupported(msg)
+                        raise exceptions.CapabilityFormatNotSupported(msg)
                     ctype = _mapping.get(type_id)
                     val = ct.cast(ptr + 2, ct.POINTER(ctype))[0]
                     if type_id in (TWTY_INT8, TWTY_UINT8, TWTY_INT16, TWTY_UINT16, TWTY_UINT32, TWTY_INT32):
@@ -211,7 +212,7 @@ class Source(object):
                         msg = "Capability Code = %d, Format Code = %d, Item Type = %d" % (cap,
                                                                                           twCapability.ConType,
                                                                                           enum.ItemType)
-                        raise excCapabilityFormatNotSupported(msg)
+                        raise exceptions.CapabilityFormatNotSupported(msg)
                     ctype = _mapping[enum.ItemType]
                     item_p = ct.cast(ptr + ct.sizeof(TW_ENUMERATION), ct.POINTER(ctype))
                     values = [el for el in item_p[0:enum.NumItems]]
@@ -222,13 +223,13 @@ class Source(object):
                         msg = "Capability Code = %d, Format Code = %d, Item Type = %d" % (cap,
                                                                                           twCapability.ConType,
                                                                                           arr.ItemType)
-                        raise excCapabilityFormatNotSupported(msg)
+                        raise exceptions.CapabilityFormatNotSupported(msg)
                     ctype = _mapping[arr.ItemType]
                     item_p = ct.cast(ptr + ct.sizeof(TW_ARRAY), ct.POINTER(ctype))
                     return arr.ItemType, [el for el in item_p[0:arr.NumItems]]
                 else:
                     msg = "Capability Code = %d, Format Code = %d" % (cap, twCapability.ConType)
-                    raise excCapabilityFormatNotSupported(msg)
+                    raise exceptions.CapabilityFormatNotSupported(msg)
             finally:
                 self._unlock(twCapability.hContainer)
         finally:
@@ -306,7 +307,7 @@ class Source(object):
         This function is used to set a value using a TW_ONEVALUE.
         """
         if not _is_good_type(type_id):
-            raise excCapabilityFormatNotSupported("Capability Code = %d, Format Code = %d" % (cap, type_id))
+            raise exceptions.CapabilityFormatNotSupported("Capability Code = %d, Format Code = %d" % (cap, type_id))
         ctype = _mapping[type_id]
         if type_id in (TWTY_INT8, TWTY_INT16, TWTY_INT32, TWTY_UINT8, TWTY_UINT16, TWTY_UINT32, TWTY_BOOL):
             cval = ctype(value)
@@ -796,7 +797,7 @@ def _get_dsm(dsm_name: str | None, protocol_major_version: int) -> ct.CDLL:
             return ct.WinDLL(dsm_name)
         except WindowsError as e:
             logger.error("load failed with error %s", e)
-            raise excSMLoadFileFailed(e)
+            raise exceptions.SMLoadFileFailed(e)
     else:
         return ct.CDLL('/System/Library/Frameworks/TWAIN.framework/TWAIN')
 
@@ -872,7 +873,7 @@ class SourceManager(object):
         try:
             self._entry = twain_dll['DSM_Entry']
         except AttributeError as e:
-            raise excSMGetProcAddressFailed(e)
+            raise exceptions.SMGetProcAddressFailed(e)
         self._entry.restype = ct.c_uint16
         self._entry.argtypes = (ct.POINTER(TW_IDENTITY),
                                 ct.POINTER(TW_IDENTITY),
@@ -903,7 +904,7 @@ class SourceManager(object):
                              MSG_GET,
                              ct.byref(entrypoint))
             if rv != TWRC_SUCCESS:
-                raise excSMOpenFailed("[%s], return code %d from DG_CONTROL DAT_ENTRYPOINT MSG_GET" % (dsm_name, rv))
+                raise exceptions.SMOpenFailed("[%s], return code %d from DG_CONTROL DAT_ENTRYPOINT MSG_GET" % (dsm_name, rv))
             self._alloc = entrypoint.DSM_MemAllocate
             self._free = entrypoint.DSM_MemFree
             self._lock = entrypoint.DSM_MemLock
@@ -964,7 +965,7 @@ class SourceManager(object):
                 raise Exception('DG_CONTROL DAT_STATUS MSG_GET returned non success code, rv = %d' % rv)
             code = status.ConditionCode
             exc = _exc_mapping.get(code,
-                                   excTWCC_UNKNOWN("ConditionCode = %d" % code))
+                                   exceptions.UnknownError("ConditionCode = %d" % code))
             raise exc
         else:
             raise Exception('Unexpected result: %d' % rv)
@@ -1042,7 +1043,7 @@ class SourceManager(object):
                             MSG_GETFIRST,
                             ct.byref(ds_id),
                             (TWRC_SUCCESS, TWRC_ENDOFLIST))
-        except excTWCC_NODS:
+        except exceptions.NoDataSourceError:
             # there are no data sources
             return names
 

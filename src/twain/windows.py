@@ -75,7 +75,7 @@ def _dib_write(handle, path, lock, unlock):
         bih = ct.cast(ptr, ct.POINTER(BITMAPINFOHEADER)).contents
         if bih.biCompression != 0:
             msg = 'Cannot handle compressed image. Compression Format %d' % bih.biCompression
-            raise exceptions.excImageFormat(msg)
+            raise exceptions.ImageFormatNotSupported(msg)
         bits_offset = file_header_size + bih.biSize + bih.biClrUsed * 4
         if bih.biSizeImage == 0:
             row_bytes = (((bih.biWidth * bih.biBitCount) + 31) & ~31) // 8
