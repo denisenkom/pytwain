@@ -50,7 +50,7 @@ class MyTestCase(unittest.TestCase):
                     logger.info('transferring image')
                     handle, more = ss.xfer_image_natively()
                     handles.append(handle)
-                except twain.excDSTransferCancelled:
+                except twain.exceptions.DSTransferCancelled:
                     logger.info('cancelled')
                     pass
                 while more != 0:
@@ -58,7 +58,7 @@ class MyTestCase(unittest.TestCase):
                         logger.info('transferring image')
                         handle, more = ss.xfer_image_natively()
                         handles.append(handle)
-                    except twain.excDSTransferCancelled:
+                    except twain.exceptions.DSTransferCancelled:
                         logger.info('cancelled')
                         more = 0
 

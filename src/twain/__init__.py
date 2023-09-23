@@ -166,7 +166,10 @@ class Source(object):
         if self._state == 'ready':
             self._end_all_xfers()
         if self._state == 'enabled':
-            self._disable()
+            try:
+                self._disable()
+            except exceptions.TwainError:
+                logger.warning("Failed to disable data source during cleanup")
         if self._state == 'open':
             self._sm._close_ds(self._id)
             self._state = 'closed'
@@ -594,7 +597,7 @@ class Source(object):
         rv, handle = self._get_native_image()
         more = self._end_xfer()
         if rv == TWRC_CANCEL:
-            raise excDSTransferCancelled
+            raise exceptions.DSTransferCancelled
         return handle.value, more
 
     def xfer_image_by_file(self) -> int:
@@ -615,7 +618,7 @@ class Source(object):
         rv = self._get_file_image()
         more = self._end_xfer()
         if rv == TWRC_CANCEL:
-            raise excDSTransferCancelled
+            raise exceptions.DSTransferCancelled
         return more
 
     def acquire_file(self, before: typing.Callable[[dict], str], after: typing.Callable[[int], None] = lambda more: None, show_ui: bool = True, modal: bool = False):
@@ -649,7 +652,7 @@ class Source(object):
             rv = self._get_file_image()
             more = self._end_xfer()
             if rv == TWRC_CANCEL:
-                raise excDSTransferCancelled
+                raise exceptions.DSTransferCancelled
             if ext != '.bmp':
                 try:
                     import Image
@@ -680,7 +683,7 @@ class Source(object):
             rv, handle = self._get_native_image()
             more = self._end_xfer()
             if rv == TWRC_CANCEL:
-                raise excDSTransferCancelled
+                raise exceptions.DSTransferCancelled
             after(_Image(handle), more)
             return more
 
@@ -962,13 +965,14 @@ class SourceManager(object):
                              MSG_GET,
                              ct.byref(status))
             if rv != TWRC_SUCCESS:
-                raise Exception('DG_CONTROL DAT_STATUS MSG_GET returned non success code, rv = %d' % rv)
+                logger.warning(f'Getting additional error information returned non success code: {rv}')
+                raise exceptions.TwainError()
             code = status.ConditionCode
             exc = _exc_mapping.get(code,
                                    exceptions.UnknownError("ConditionCode = %d" % code))
             raise exc
         else:
-            raise Exception('Unexpected result: %d' % rv)
+            raise RuntimeError('Unexpected result: %d' % rv)
 
     def _user_select(self):
         logger.info("starting source selection dialog")
@@ -1154,11 +1158,11 @@ def acquire(path,
 
             def after(more):
                 if more:
-                    raise CancelAll
+                    raise exceptions.CancelAll
 
             try:
                 sd.acquire_file(before=before, after=after, show_ui=show_ui, modal=modal)
-            except excDSTransferCancelled:
+            except exceptions.DSTransferCancelled:
                 return None
         finally:
             sd.close()
