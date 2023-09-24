@@ -9,7 +9,7 @@ from . import exceptions
 from .lowlevel.constants import *
 from .lowlevel.structs import *
 
-logger = logging.getLogger('lowlevel')
+logger = logging.getLogger('twain')
 
 _exc_mapping = {
     TWCC_BUMMER: exceptions.GeneralFailure,
