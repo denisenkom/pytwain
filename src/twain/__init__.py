@@ -1035,7 +1035,7 @@ class SourceManager(object):
         res.update(_struct2dict(self._app_id.Version, self._decode))
         return res
 
-    @property
+    
     def source_list(self) -> list[str]:
         """Returns a list containing the names of available sources"""
         names = []
