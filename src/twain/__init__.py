@@ -1009,6 +1009,10 @@ class SourceManager(object):
     def open_source(self, product_name: str = None) -> Source | None:
         """Open a TWAIN Source.
 
+        If `product_name` parameter is specified, will open source matching that product name.
+        Otherwise, will present a source selection dialog box to user.  Once user selects a source,
+        that source will be opened.
+
         Returns a :class:`Source` object, which can be used to communicate with the source or `None` if user cancelled
         source selection dialog.
 
