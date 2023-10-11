@@ -53,10 +53,10 @@ class wxFrame2(wx.Frame):
             self.bmpImage.SetBitmap(bmp)
             self.scrolledWindow1.maxWidth = bmp.GetWidth()
             self.scrolledWindow1.maxHeight = bmp.GetHeight()
-            self.scrolledWindow1.SetScrollbars(20, 20, bmp.GetWidth()/20, bmp.GetHeight()/20)
+            self.scrolledWindow1.SetScrollbars(20, 20, int(bmp.GetWidth()/20), int(bmp.GetHeight()/20))
             self.bmpImage.Refresh()
-        except:
-            self.Control.DisplayException("View Bitmap")
+        except Exception as exc:
+            self.Control.DisplayException(exc, "View Bitmap")
 
     def SetImageFromFile(self, FileName, Control):
         self.Control = Control
@@ -70,6 +70,6 @@ class wxFrame2(wx.Frame):
             self.scrolledWindow1.maxHeight = bmp.GetHeight()
             self.scrolledWindow1.SetScrollbars(20, 20, bmp.GetWidth()/20, bmp.GetHeight()/20)
             self.bmpImage.Refresh()
-        except:
-            self.Control.DisplayException("View Bitmap")
+        except Exception as exc:
+            self.Control.DisplayException(exc, "View Bitmap")
             

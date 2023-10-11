@@ -1,4 +1,4 @@
-#Boa:Frame:wxFrame1
+# Boa:Frame:wxFrame1
 
 import wx
 
@@ -11,12 +11,17 @@ import dlgTransfer
 import dlgIdentity
 import twexplore
 
+
 def create(parent):
     return wxFrame1(parent)
 
-[wxID_WXFRAME1, wxID_WXFRAME1LISTCAPS, wxID_WXFRAME1SPLITTERWINDOW1, wxID_WXFRAME1STATUSBAR1, wxID_WXFRAME1TXTLOG] = [wx.NewId() for _init_ctrls in range(5)]
 
-[wxID_WXFRAME1FILEMENUITEMS0, wxID_WXFRAME1FILEMENUITEMS1, wxID_WXFRAME1FILEMENUITEMS2, wxID_WXFRAME1FILEMENUITEMS3, wxID_WXFRAME1FILEMENUITEMS4] = [wx.NewId() for _init_coll_FileMenu_Items in range(5)]
+[wxID_WXFRAME1, wxID_WXFRAME1LISTCAPS, wxID_WXFRAME1SPLITTERWINDOW1, wxID_WXFRAME1STATUSBAR1, wxID_WXFRAME1TXTLOG] = [
+    wx.NewId() for _init_ctrls in range(5)]
+
+[wxID_WXFRAME1FILEMENUITEMS0, wxID_WXFRAME1FILEMENUITEMS1, wxID_WXFRAME1FILEMENUITEMS2, wxID_WXFRAME1FILEMENUITEMS3,
+ wxID_WXFRAME1FILEMENUITEMS4] = [wx.NewId() for _init_coll_FileMenu_Items in range(5)]
+
 
 class wxFrame1(wx.Frame):
     def _init_coll_FileMenu_Items(self, parent):
@@ -34,51 +39,56 @@ class wxFrame1(wx.Frame):
 
     def _init_coll_menuBar1_Menus(self, parent):
 
-        parent.Append(menu = self.FileMenu, title = 'File')
+        parent.Append(menu=self.FileMenu, title='File')
 
     def _init_coll_listCaps_Columns(self, parent):
 
-        parent.InsertColumn(col = 0, format = wx.LIST_FORMAT_LEFT, heading = 'Capability', width = 200)
-        parent.InsertColumn(col = 1, format = wx.LIST_FORMAT_LEFT, heading = 'Supported Values', width = 400)
-        parent.InsertColumn(col = 2, format = wx.LIST_FORMAT_LEFT, heading = 'Current Value', width = 100)
+        parent.InsertColumn(col=0, format=wx.LIST_FORMAT_LEFT, heading='Capability', width=200)
+        parent.InsertColumn(col=1, format=wx.LIST_FORMAT_LEFT, heading='Supported Values', width=400)
+        parent.InsertColumn(col=2, format=wx.LIST_FORMAT_LEFT, heading='Current Value', width=100)
 
     def _init_coll_statusBar1_Fields(self, parent):
         parent.SetFieldsCount(3)
 
-        parent.SetStatusText(number=0, text = 'sbMessage')
-        parent.SetStatusText(number=1, text = 'sbSource')
-        parent.SetStatusText(number=2, text = 'sbStatus')
+        parent.SetStatusText(i=0, text='sbMessage')
+        parent.SetStatusText(i=1, text='sbSource')
+        parent.SetStatusText(i=2, text='sbStatus')
 
         parent.SetStatusWidths([-1, 200, 200])
 
     def _init_utils(self):
         self.menuBar1 = wx.MenuBar()
 
-        self.FileMenu = wx.Menu(title = '')
+        self.FileMenu = wx.Menu(title='')
         self._init_coll_FileMenu_Items(self.FileMenu)
 
         self._init_coll_menuBar1_Menus(self.menuBar1)
 
     def _init_ctrls(self, prnt):
-        wx.Frame.__init__(self, id = wxID_WXFRAME1, name = 'twexplore', parent = prnt, pos = wx.Point(254, 66), size = wx.Size(768, 537), style=wx.DEFAULT_FRAME_STYLE, title = 'TWAIN Explorer')
+        wx.Frame.__init__(self, id=wxID_WXFRAME1, name='twexplore', parent=prnt, pos=wx.Point(254, 66),
+                          size=wx.Size(768, 537), style=wx.DEFAULT_FRAME_STYLE, title='TWAIN Explorer')
         self._init_utils()
         self.SetClientSize(wx.Size(760, 510))
         self.SetMenuBar(self.menuBar1)
 
-        self.splitterWindow1 = wx.SplitterWindow(id = wxID_WXFRAME1SPLITTERWINDOW1, name = 'splitterWindow1', parent = self, point = wx.Point(128, -32), size = wx.Size(760, 491), style=wx.SP_3D)
+        self.splitterWindow1 = wx.SplitterWindow(id=wxID_WXFRAME1SPLITTERWINDOW1, name='splitterWindow1', parent=self,
+                                                 pos=wx.Point(128, -32), size=wx.Size(760, 491), style=wx.SP_3D)
 
-        self.txtLog = wx.TextCtrl(id = wxID_WXFRAME1TXTLOG, name = 'txtLog', parent = self.splitterWindow1, pos = wx.Point(2, 387), size = wx.Size(756, 82), style=wx.TE_MULTILINE, value = '')
-        #self.txtLog.SetTitle('')
+        self.txtLog = wx.TextCtrl(id=wxID_WXFRAME1TXTLOG, name='txtLog', parent=self.splitterWindow1,
+                                  pos=wx.Point(2, 387), size=wx.Size(756, 82), style=wx.TE_MULTILINE, value='')
+        # self.txtLog.SetTitle('')
         self.txtLog.SetLabel('')
         self.txtLog.SetToolTipString('LogWindow')
 
-        self.listCaps = wx.ListCtrl(id = wxID_WXFRAME1LISTCAPS, name = 'listCaps', parent = self.splitterWindow1, pos = wx.Point(2, 2), size = wx.Size(756, 378), style=wx.LC_REPORT, validator = wx.DefaultValidator)
+        self.listCaps = wx.ListCtrl(id=wxID_WXFRAME1LISTCAPS, name='listCaps', parent=self.splitterWindow1,
+                                    pos=wx.Point(2, 2), size=wx.Size(756, 378), style=wx.LC_REPORT,
+                                    validator=wx.DefaultValidator)
         self._init_coll_listCaps_Columns(self.listCaps)
         self.listCaps.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnListcapsListItemSelected, id=wxID_WXFRAME1LISTCAPS)
         self.listCaps.Bind(wx.EVT_LEFT_DCLICK, self.OnListcapsLeftDclick)
         self.splitterWindow1.SplitHorizontally(self.listCaps, self.txtLog, 380)
 
-        self.statusBar1 = wx.StatusBar(id = wxID_WXFRAME1STATUSBAR1, name = 'statusBar1', parent = self, style = 0)
+        self.statusBar1 = wx.StatusBar(id=wxID_WXFRAME1STATUSBAR1, name='statusBar1', parent=self, style=0)
         self._init_coll_statusBar1_Fields(self.statusBar1)
         self.SetStatusBar(self.statusBar1)
 
@@ -99,7 +109,6 @@ class wxFrame1(wx.Frame):
         self.FileMenu.Enable(wxID_WXFRAME1FILEMENUITEMS2, False)
         self.FileMenu.Enable(wxID_WXFRAME1FILEMENUITEMS3, False)
 
-
     def OnClose(self, event):
         if hasattr(self, "SS") and self.SS != None:
             self.SS.destroy()
@@ -113,28 +122,29 @@ class wxFrame1(wx.Frame):
         ### Write a message to the log window
         self.txtLog.AppendText(Message)
         self.txtLog.AppendText("\n")
-    def DisplayException(self, Title = None):
+
+    def DisplayException(self, exc, Title=None):
         ### Display the exception in a window
-        txt = string.join(traceback.format_exception(
-                sys.exc_type, sys.exc_value, sys.exc_traceback))
+        txt = "".join(traceback.format_exception(exc))
         dlg = wx.MessageDialog(self, txt,
-                 Title, wx.OK | wx.ICON_INFORMATION)
+                               Title, wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()
+
     def OnFilemenuitems0Menu(self, event):
         ## Connect
-        exceptionTitle=None
+        exceptionTitle = None
         try:
             if self.SS:
-                exceptionTitle="Destroy Source Object"
+                exceptionTitle = "Destroy Source Object"
                 self.Log("del self.SS")
                 self.Log("self.SS = None")
                 del self.SS
-                self.SS=None
+                self.SS = None
                 self.statusBar1.SetStatusText("3 - SourceManager Open", 2)
                 self.statusBar1.SetStatusText("", 1)
             if not self.SM:
-                exceptionTitle="Open SourceManager"
+                exceptionTitle = "Open SourceManager"
                 self.statusBar1.SetStatusText("Attempting SourceManager Open", 0)
                 self.Log("self.SM=twain.SourceManager(self.GetHandle())")
                 self.SM = twain.SourceManager(self.GetHandle())
@@ -143,7 +153,7 @@ class wxFrame1(wx.Frame):
                 if self.SM:
                     self.statusBar1.SetStatusText("3 - SourceManager Open", 2)
 
-            exceptionTitle="Open Source"
+            exceptionTitle = "Open Source"
             self.statusBar1.SetStatusText("Attempting Connect", 0)
             self.Log("self.SS=self.SM.OpenSource()")
             self.SS = self.SM.OpenSource()
@@ -163,28 +173,27 @@ class wxFrame1(wx.Frame):
                 self.FileMenu.Enable(wxID_WXFRAME1FILEMENUITEMS3, True)
             else:
                 self.statusBar1.SetStatusText("Connect Cancelled", 0)
-        except:
-            self.DisplayException(exceptionTitle)
+        except Exception as exc:
+            self.DisplayException(exc, exceptionTitle)
 
     def OnFilemenuitems1Menu(self, event):
-        exceptionTitle=None
+        exceptionTitle = None
         try:
             if self.SS:
                 self.FileMenu.Enable(wxID_WXFRAME1FILEMENUITEMS1, False)
                 self.FileMenu.Enable(wxID_WXFRAME1FILEMENUITEMS2, False)
                 self.FileMenu.Enable(wxID_WXFRAME1FILEMENUITEMS3, False)
-                exceptionTitle="Destroy Source Object"
+                exceptionTitle = "Destroy Source Object"
                 self.Log("self.SS.destroy()")
                 self.Log("self.SS = None")
                 self.SS.destroy()
-                self.SS=None
+                self.SS = None
                 self.listCaps.DeleteAllItems()
                 self.LastSource = None
                 self.statusBar1.SetStatusText("3 - SourceManager Open", 2)
                 self.statusBar1.SetStatusText("", 1)
-        except:
-            self.DisplayException(exceptionTitle)
-
+        except Exception as exc:
+            self.DisplayException(exc, exceptionTitle)
 
     def OnFilemenuitems2Menu(self, event):
         ## Acquire
@@ -198,26 +207,23 @@ class wxFrame1(wx.Frame):
         self.statusBar1.SetStatusText("Refreshing Capabilities", 0)
         if not hasattr(self, "CapabilityNames"):
             ## Get the list of names and store it
-            capnames = filter(lambda x:len(x) > 3 and x[0:3] == "CAP",
-                twain.__dict__.keys())
-            capnames.sort()
-            capnames1 = filter(lambda x:len(x) > 4 and x[0:4] == "ICAP",
-                twain.__dict__.keys())
-            capnames1.sort()
+            capnames = sorted(filter(lambda x: len(x) > 3 and x[0:3] == "CAP",
+                              twain.__dict__.keys()))
+            capnames1 = sorted(filter(lambda x: len(x) > 4 and x[0:4] == "ICAP",
+                               twain.__dict__.keys()))
             capnames = capnames + capnames1
-            capnames1 = filter(lambda x:len(x) > 4 and x[0:4] == "ACAP",
-                twain.__dict__.keys())
-            capnames1.sort()
+            capnames1 = sorted(filter(lambda x: len(x) > 4 and x[0:4] == "ACAP",
+                               twain.__dict__.keys()))
             self.CapabilityNames = capnames + capnames1
 
             ## I use these for selecting the default value to set a capability.
-            typenames = filter(lambda x:len(x) > 4 and x[0:4] == "TWTY",
-                twain.__dict__.keys())
+            typenames = filter(lambda x: len(x) > 4 and x[0:4] == "TWTY",
+                               twain.__dict__.keys())
             self.typeIds = {}
             for name in typenames:
                 self.typeIds[getattr(twain, name)] = name
 
-        if not hasattr(self, "LastSource") or self.LastSource <> self.SS.GetSourceName():
+        if not hasattr(self, "LastSource") or self.LastSource != self.SS.GetSourceName():
             self.LastSource = self.SS.GetSourceName()
             self.listCaps.ClearAll()
             self._init_coll_listCaps_Columns(self.listCaps)
@@ -247,7 +253,7 @@ class wxFrame1(wx.Frame):
                 capId = getattr(twain, capname)
                 capInfo = self.SS.GetCapability(capId)
                 if type(capInfo) == type({}):
-                    capval = str(capInfo)   ## range
+                    capval = str(capInfo)  ## range
                 else:
                     capval = str(capInfo[1])
                     (capType, curval) = self.SS.GetCapabilityCurrent(capId)
@@ -258,8 +264,8 @@ class wxFrame1(wx.Frame):
                         curval = str(curval)
                 except:
                     curval = str(curval)
-            except:
-                capval = str(sys.exc_type) + str(sys.exc_value)
+            except Exception as exc:
+                capval = type(exc).__name__ + str(exc)
             self.listCaps.SetStringItem(i, 1, capval)
             self.listCaps.SetStringItem(i, 2, curval)
         self.statusBar1.SetStatusText("Refreshed Capabilities", 0)
@@ -279,6 +285,7 @@ class wxFrame1(wx.Frame):
         capDlg = ChangeCap.wxDialog1(self)
         capDlg.SetSourceInfo(self.SS, self, capName)
         capDlg.ShowModal()
+
     def OnTwainEvent(self, event):
         self.Log("OnTwainEvent called, event=%d" % event)
         try:
@@ -296,8 +303,9 @@ class wxFrame1(wx.Frame):
                 # Have to close the DS (note: not hide it)
                 self.Log('twain.MSG_CLOSEDREQ event')
                 self.OnFilemenuitems1Menu(None)
-        except:
-            self.DisplayException("OnTwainEvent")
+        except Exception as exc:
+            self.DisplayException(exc, "OnTwainEvent")
+
     def LookUpConstant(self, prefix, value):
         ### This method is used to translate constants back into their
         ### logical names.
@@ -307,18 +315,20 @@ class wxFrame1(wx.Frame):
             return subset[value]
         except:
             return None
+
     def InitialiseConstants(self):
         if hasattr(self, "Constants"):
             return
         self.Constants = {}
         keys = twain.__dict__.keys()
         for k in keys:
-            if k[0] != '_' and string.find(k, '_') != -1:
-                prefix = string.split(k, '_', 1)[0]
+            if k[0] != '_' and k.find('_') != -1:
+                prefix = k.split('_')[0]
                 value = getattr(twain, k)
-                if not self.Constants.has_key(prefix):
+                if prefix not in self.Constants.keys():
                     self.Constants[prefix] = {}
                 self.Constants[prefix][value] = k
+
     def GetConstants(self, prefix):
         self.InitialiseConstants()
         return self.Constants[prefix]

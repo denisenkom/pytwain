@@ -242,8 +242,8 @@ class wxDialog1(wx.Dialog):
                 # Provide from variable, so parent can re-raise it
                 self.frm = frm
                 self.Close(1)
-        except:
-            self.Control.DisplayException("self.SS.XferImageNatively")
+        except Exception as exc:
+            self.Control.DisplayException(exc, "self.SS.XferImageNatively")
 
     def ShowMoreToCome(self, bMoreAvailable):
         if bMoreAvailable:
