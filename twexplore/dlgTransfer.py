@@ -262,9 +262,9 @@ class wxDialog1(wx.Dialog):
             (name, imgType) = self.SS.GetXferFileName()
             XferFileName=name
             GetXferFileNameWorks=True
-        except:
+        except Exception as exc:
             self.Control.Log("** This scanner does not support GetXferFileName - using default TWAIN.TMP")
-            self.Control.DisplayException("self.SS.GetXferFileName()")
+            self.Control.DisplayException(exc, "self.SS.GetXferFileName()")
             (name, imgType) = ("twain.tmp", twain.TWFF_BMP)
             XferFileName='twain.tmp'
 
@@ -278,8 +278,8 @@ class wxDialog1(wx.Dialog):
                     if dlg.Name:
                         self.SS.SetXferFileName(dlg.Name, dlg.imgType)
                         XferFileName=dlg.Name
-            except:
-                self.Control.DisplayException("self.SS.SetXferFileName")
+            except Exception as exc:
+                self.Control.DisplayException(exc, "self.SS.SetXferFileName")
             dlg.Destroy()
 
         try:
@@ -307,8 +307,8 @@ class wxDialog1(wx.Dialog):
             else:
                 self.Close(1)
             
-        except:
-            self.Control.DisplayException("self.SS.XferImageByFile")
+        except Exception as exc:
+            self.Control.DisplayException(exc, "self.SS.XferImageByFile")
 
     def OnButton3Button(self, event):
         ### Abort transfer
@@ -317,8 +317,8 @@ class wxDialog1(wx.Dialog):
             self.Control.Log("self.SS.CancelAllPendingXfers()")
             self.SS.CancelAllPendingXfers()
             self.Close(1)
-        except:
-            self.Control.DisplayException("self.SS.CancelAllPendingXfers()")
+        except Exception as exc:
+            self.Control.DisplayException(exc, "self.SS.CancelAllPendingXfers()")
 
     def SetSourceInfo(self, SS, Control):
         ### Pass in three pieces of information, the SS object,

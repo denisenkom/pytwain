@@ -44,8 +44,8 @@ class wxDialog1(wx.Dialog):
             rv = self.SS.RequestAcquire(self.cbShowUI.GetValue(),
                 self.cbModal.GetValue())
             self.EndModal(1)
-        except:
-            self.Control.DisplayException("self.SS.RequestAcquire()")
+        except Exception as exc:
+            self.Control.DisplayException(exc, "self.SS.RequestAcquire()")
         if hasattr(self.SS, 'ModalLoop'):
             self.SS.ModalLoop()
 
@@ -66,8 +66,8 @@ class wxDialog1(wx.Dialog):
         self.Control.Log("self.SS.GetImageLayout()")
         try:
             Layout = self.SS.GetImageLayout()
-        except:
-            self.Control.DisplayException("self.SS.GetImageLayout")
+        except Exception as exc:
+            self.Control.DisplayException(exc, "self.SS.GetImageLayout")
             return
         (frame, DocNumber, PageNumber, FrameNumber) = Layout
         dlg = dlgLayout.create(self)
@@ -81,6 +81,6 @@ class wxDialog1(wx.Dialog):
                 self.SS.SetImageLayout(
                     (dlg.Left, dlg.Top, dlg.Right, dlg.Bottom),
                     DocNumber, PageNumber, FrameNumber)
-        except:
-            self.Control.DisplayException("self.SS.SetImageLayout")
+        except Exception as exc:
+            self.Control.DisplayException(exc, "self.SS.SetImageLayout")
         dlg.Destroy()
