@@ -1,14 +1,14 @@
 import twain
 import uuid
 import logging
-import tkinter
 
 
-def test_multiple_images_scan():
-    root = tkinter.Tk()
-    root.title('scan.py')
+from fixtures import root_window
+
+
+def test_multiple_images_scan(root_window):
     logging.basicConfig(level=logging.DEBUG)
-    with twain.SourceManager(root) as sm:
+    with twain.SourceManager(root_window) as sm:
         with sm.open_source() as ss:
             for _ in range(2):
                 ss.request_acquire(show_ui=False, modal_ui=False)
