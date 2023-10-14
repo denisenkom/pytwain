@@ -625,7 +625,7 @@ class Source(object):
         """Acquires one or more images as files. Call returns when acquisition complete.
 
         :param before: Callback called before each acquired file, it should return
-                       full file path. It can also throw CancelAll to cancel acquisition
+                       full file path to where image should be saved. It can also throw CancelAll to cancel acquisition
         :keyword after: Callback called after each acquired file, it receives number of
                         images remaining. It can throw CancelAll to cancel remaining
                         acquisition
