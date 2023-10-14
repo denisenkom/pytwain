@@ -17,10 +17,14 @@ logging.basicConfig(level=logging.DEBUG)
 root = tkinter.Tk()
 root.title('scan.py')
 sm = twain.SourceManager(root)
+# this will show UI to allow user to select source
 src = sm.open_source()
-src.request_acquire(show_ui=False, modal_ui=False)
-(handle, remaining_count) = src.xfer_image_natively()
-twain.dib_to_bm_file(handle, 'testscan.bmp')
+if src:
+    src.request_acquire(show_ui=False, modal_ui=False)
+    (handle, remaining_count) = src.xfer_image_natively()
+    twain.dib_to_bm_file(handle, 'testscan.bmp')
+else:
+    print("User clicked cancel")
 ```
 
 Full documentation for the library located [here](http://pytwain.readthedocs.org/).
