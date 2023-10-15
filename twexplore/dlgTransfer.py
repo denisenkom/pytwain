@@ -52,7 +52,7 @@ class wxDialog1(wx.Dialog):
         self.button1 = wx.Button(id=wxID_WXDIALOG1BUTTON1,
               label='Transfer Natively', name='button1', parent=self,
               pos=wx.Point(56, 344), size=wx.Size(112, 23), style=0)
-        self.button1.Bind(wx.EVT_BUTTON, self.OnButton1Button,
+        self.button1.Bind(wx.EVT_BUTTON, self.on_transfer_natively_click,
               id=wxID_WXDIALOG1BUTTON1)
 
         self.button2 = wx.Button(id=wxID_WXDIALOG1BUTTON2,
@@ -216,21 +216,22 @@ class wxDialog1(wx.Dialog):
               label='Document Information', name='staticBox3', parent=self,
               pos=wx.Point(296, 48), size=wx.Size(232, 112), style=0)
 
-    def __init__(self, parent):
+    def __init__(self, parent, *args, **kw):
+        super().__init__(*args, **kw)
         self._init_ctrls(parent)
 
-    def OnButton1Button(self, event):
+    def on_transfer_natively_click(self, event):
         self.ShowMoreToCome(0)
         try:
             self.Control.Log("self.SS.XferImageNatively()")
             self.Control.statusBar1.SetStatusText("7 - Transferring Data", 2)
-            (handle, more_to_come) = self.SS.XferImageNatively()
+            (handle, more_to_come) = self.SS.xfer_image_natively()
             self.Control.Log(">> (0x%lx, %d)"%(handle, more_to_come))
             if more_to_come:
                 self.Control.statusBar1.SetStatusText("6 - Data Available", 2)
             else:
                 self.Control.statusBar1.SetStatusText("5 - Acquisition Requested", 2)
-            frm=frmViewBmp.create(self)
+            frm = frmViewBmp.create(self)
             frm.SetImageFile(handle, self.Control)
             self.Control.Log("twain.GlobalHandleFree(0x%lx)"%handle)
             twain.GlobalHandleFree(handle)

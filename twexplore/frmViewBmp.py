@@ -42,7 +42,7 @@ class wxFrame2(wx.Frame):
         self.Control = Control
         try:
             self.Control.Log("twain.DIBToBMFile(0x%lx, '%s')" % (handle, TmpFileName))
-            twain.DIBToBMFile(handle, TmpFileName)
+            twain.dib_to_bm_file(handle, TmpFileName)
         except:
             self.Control.DisplayException("twain.DIBToBMFile()")
             return
