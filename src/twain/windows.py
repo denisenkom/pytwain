@@ -1,7 +1,7 @@
 import ctypes as ct
 import warnings
-from . import exceptions
 from . import utils
+from .utils import convert_dib_to_bmp
 
 
 def _win_check(result, func, args):
@@ -52,62 +52,6 @@ if utils.is_windows():
 GMEM_ZEROINIT = 0x0040
 
 
-class BITMAPINFOHEADER(ct.Structure):
-    _pack_ = 4
-    _fields_ = [('biSize', ct.c_uint32),
-                ('biWidth', ct.c_long),
-                ('biHeight', ct.c_long),
-                ('biPlanes', ct.c_uint16),
-                ('biBitCount', ct.c_uint16),
-                ('biCompression', ct.c_uint32),
-                ('biSizeImage', ct.c_uint32),
-                ('biXPelsPerMeter', ct.c_long),
-                ('biYPelsPerMeter', ct.c_long),
-                ('biClrUsed', ct.c_uint32),
-                ('biClrImportant', ct.c_uint32)]
-
-
-def _dib_write(handle, path, lock, unlock):
-    file_header_size = 14
-    ptr = lock(handle)
-    try:
-        char_ptr = ct.cast(ptr, ct.POINTER(ct.c_char))
-        bih = ct.cast(ptr, ct.POINTER(BITMAPINFOHEADER)).contents
-        if bih.biCompression != 0:
-            msg = 'Cannot handle compressed image. Compression Format %d' % bih.biCompression
-            raise exceptions.ImageFormatNotSupported(msg)
-        bits_offset = file_header_size + bih.biSize + bih.biClrUsed * 4
-        if bih.biSizeImage == 0:
-            row_bytes = (((bih.biWidth * bih.biBitCount) + 31) & ~31) // 8
-            bih.biSizeImage = row_bytes * bih.biHeight
-        dib_size = bih.biSize + bih.biClrUsed * 4 + bih.biSizeImage
-        file_size = dib_size + file_header_size
-
-        def _write_bmp(f):
-            import struct
-            f.write(b'BM')
-            f.write(struct.pack('LHHL', file_size, 0, 0, bits_offset))
-            for i in range(dib_size):
-                f.write(char_ptr[i])
-
-        if path:
-            f = open(path, 'wb')
-            try:
-                _write_bmp(f)
-            finally:
-                f.close()
-        else:
-            import io
-            f = io.BytesIO()
-            try:
-                _write_bmp(f)
-                return f.getvalue()
-            finally:
-                f.close()
-    finally:
-        unlock(handle)
-
-
 def dib_to_bm_file(handle, path=None):
     """Convert a DIB (Device Independent Bitmap) to a windows
     bitmap file format. The BitMap file is either returned as
@@ -118,7 +62,21 @@ def dib_to_bm_file(handle, path=None):
 
         Can only be used with lowlevel 1.x sources
     """
-    return _dib_write(handle, path, GlobalLock, GlobalUnlock)
+    size = GlobalSize(handle)
+    ptr = GlobalLock(handle)
+    try:
+        dib_bytes = (ct.c_char * size).from_address(ptr)
+        bmp = convert_dib_to_bmp(dib_bytes)
+        if path:
+            f = open(path, 'wb')
+            try:
+                f.write(bmp)
+            finally:
+                f.close()
+        else:
+            return bmp
+    finally:
+        GlobalUnlock(handle)
 
 
 def dib_to_xbm_file(handle, path=None):

@@ -1,4 +1,5 @@
 #Boa:Frame:wxFrame2
+from io import BytesIO
 
 import wx
 from wx.lib.anchors import LayoutAnchors
@@ -6,8 +7,6 @@ from wx.lib.anchors import LayoutAnchors
 import os
 
 import twain
-
-TmpFileName="temp.bmp"
 
 def create(parent):
     return wxFrame2(parent)
@@ -41,15 +40,14 @@ class wxFrame2(wx.Frame):
     def SetImageFile(self, handle, Control):
         self.Control = Control
         try:
-            self.Control.Log("twain.DIBToBMFile(0x%lx, '%s')" % (handle, TmpFileName))
-            twain.dib_to_bm_file(handle, TmpFileName)
+            self.Control.Log("twain.dib_to_bm_file(0x%lx)" % (handle))
+            bmp_bytes = twain.dib_to_bm_file(handle)
         except:
             self.Control.DisplayException("twain.DIBToBMFile()")
             return
         try:
-            FileSize = int(os.stat(TmpFileName)[6] / 1000)
-            self.SetTitle("View Image : %s [File Size = %dk]" % (TmpFileName, FileSize))
-            bmp = wx.Image(TmpFileName, wx.BITMAP_TYPE_BMP).ConvertToBitmap()
+            self.SetTitle(f"View Image : [Size = {len(bmp_bytes)}]")
+            bmp = wx.Image(BytesIO(bmp_bytes), wx.BITMAP_TYPE_BMP).ConvertToBitmap()
             self.bmpImage.SetBitmap(bmp)
             self.scrolledWindow1.maxWidth = bmp.GetWidth()
             self.scrolledWindow1.maxHeight = bmp.GetHeight()
