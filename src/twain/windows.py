@@ -52,28 +52,6 @@ if utils.is_windows():
 GMEM_ZEROINIT = 0x0040
 
 
-def _dib_write(handle, path, lock, unlock):
-    ptr = lock(handle)
-    try:
-        bmp = convert_dib_to_bmp(ptr)
-        if path:
-            f = open(path, 'wb')
-            try:
-                f.write(bmp)
-            finally:
-                f.close()
-        else:
-            import io
-            f = io.BytesIO()
-            try:
-                f.write(bmp)
-                return f.getvalue()
-            finally:
-                f.close()
-    finally:
-        unlock(handle)
-
-
 def dib_to_bm_file(handle, path=None):
     """Convert a DIB (Device Independent Bitmap) to a windows
     bitmap file format. The BitMap file is either returned as
@@ -84,7 +62,20 @@ def dib_to_bm_file(handle, path=None):
 
         Can only be used with lowlevel 1.x sources
     """
-    return _dib_write(handle, path, GlobalLock, GlobalUnlock)
+    size = GlobalSize(handle)
+    ptr = GlobalLock(handle)
+    try:
+        bmp = convert_dib_to_bmp(dib_ptr=ptr, size=size)
+        if path:
+            f = open(path, 'wb')
+            try:
+                f.write(bmp)
+            finally:
+                f.close()
+        else:
+            return bmp
+    finally:
+        GlobalUnlock(handle)
 
 
 def dib_to_xbm_file(handle, path=None):

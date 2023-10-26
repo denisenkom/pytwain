@@ -24,12 +24,11 @@ def is_windows():
     return platform.system() == 'Windows'
 
 
-def convert_dib_to_bmp(dib_ptr: ct.c_void_p) -> bytes:
+def convert_dib_to_bmp(dib_ptr: ct.c_void_p, size: int) -> bytes:
     file_header_size = 14
     bih = ct.cast(dib_ptr, ct.POINTER(BITMAPINFOHEADER)).contents
     bits_offset = file_header_size + bih.biSize + bih.biClrUsed * 4
-    dib_size = bih.biSize + bih.biClrUsed * 4 + bih.biSizeImage
-    file_size = dib_size + file_header_size
+    file_size = size + file_header_size
     import struct
     file_header = struct.pack('=ccLHHL', b"B", b"M", file_size, 0, 0, bits_offset)
-    return file_header + ct.cast(dib_ptr, ct.c_char * dib_size)
+    return file_header + ct.cast(dib_ptr, ct.c_char * size)
