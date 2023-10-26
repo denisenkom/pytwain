@@ -24,11 +24,19 @@ def is_windows():
     return platform.system() == 'Windows'
 
 
-def convert_dib_to_bmp(dib_ptr: ct.c_void_p, size: int) -> bytes:
+def convert_dib_to_bmp(dib_bytes: bytes | ct.Array[ct.c_char]) -> bytes:
+    """
+    Convert image from Device Independent Bitmap (DIB) passed as bytes array
+    to BMP file format.  Since BMP file format is just a DIB with BMP file header,
+    this function just prepends DIB with said header.
+
+    DIB is the image format used by TWAIN on Windows.
+    More information on DIB format can be found here: https://learn.microsoft.com/en-us/windows/win32/gdi/device-independent-bitmaps
+    """
     file_header_size = 14
-    bih = ct.cast(dib_ptr, ct.POINTER(BITMAPINFOHEADER)).contents
+    bih = BITMAPINFOHEADER.from_buffer(dib_bytes)
     bits_offset = file_header_size + bih.biSize + bih.biClrUsed * 4
-    file_size = size + file_header_size
+    file_size = len(dib_bytes) + file_header_size
     import struct
     file_header = struct.pack('=ccLHHL', b"B", b"M", file_size, 0, 0, bits_offset)
-    return file_header + ct.cast(dib_ptr, ct.c_char * size)
+    return file_header + dib_bytes

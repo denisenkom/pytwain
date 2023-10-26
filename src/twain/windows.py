@@ -65,7 +65,8 @@ def dib_to_bm_file(handle, path=None):
     size = GlobalSize(handle)
     ptr = GlobalLock(handle)
     try:
-        bmp = convert_dib_to_bmp(dib_ptr=ptr, size=size)
+        dib_bytes = (ct.c_char * size).from_address(ptr)
+        bmp = convert_dib_to_bmp(dib_bytes)
         if path:
             f = open(path, 'wb')
             try:

@@ -1,4 +1,5 @@
 #Boa:Frame:wxFrame2
+from io import BytesIO
 
 import wx
 from wx.lib.anchors import LayoutAnchors
@@ -46,7 +47,7 @@ class wxFrame2(wx.Frame):
             return
         try:
             self.SetTitle(f"View Image : [Size = {len(bmp_bytes)}]")
-            bmp = wx.Image(bmp_bytes, wx.BITMAP_TYPE_BMP).ConvertToBitmap()
+            bmp = wx.Image(BytesIO(bmp_bytes), wx.BITMAP_TYPE_BMP).ConvertToBitmap()
             self.bmpImage.SetBitmap(bmp)
             self.scrolledWindow1.maxWidth = bmp.GetWidth()
             self.scrolledWindow1.maxHeight = bmp.GetHeight()
