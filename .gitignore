@@ -38,5 +38,6 @@ nosetests.xml
 /tests/*.bmp
 /venv
 /venv64
+/venv38
 /testscans
 /RELEASE-VERSION

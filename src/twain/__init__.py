@@ -1,13 +1,22 @@
+from __future__ import annotations
+
 import logging
 import os
 import sys
 import typing
 import weakref
+
+from typing import Dict
+
 from . import windows
 from . import utils
 from . import exceptions
 from .lowlevel.constants import *
 from .lowlevel.structs import *
+# Following imports are needed for backward compatibility
+from .windows import *
+
+import ctypes as ct
 
 logger = logging.getLogger('twain')
 
@@ -62,7 +71,7 @@ def _is_good_type(type_id: int) -> bool:
     return type_id in list(_mapping.keys())
 
 
-def _struct2dict(struct, decode) -> dict[str, typing.Any]:
+def _struct2dict(struct, decode) -> Dict[str, typing.Any]:
     result = {}
     for field, _ in struct._fields_:
         value = getattr(struct, field)
@@ -104,7 +113,7 @@ else:
         return ct.libc.free(handle)
 
 
-class _Image(object):
+class _Image:
     def __init__(self, handle):
         self._handle = handle
 
@@ -121,7 +130,7 @@ class _Image(object):
         windows.dib_write(self._handle, filepath, self._lock, self._unlock)
 
 
-class Source(object):
+class Source:
     """
     This object represents connection to Data Source.
 
@@ -187,9 +196,7 @@ class Source(object):
                 if twCapability.ConType == TWON_ONEVALUE:
                     type_id = int(ct.cast(ptr, ct.POINTER(ct.c_uint16))[0])
                     if not _is_good_type(type_id):
-                        msg = "Capability Code = %d, Format Code = %d, Item Type = %d" % (cap,
-                                                                                          twCapability.ConType,
-                                                                                          type_id)
+                        msg = f"Capability Code = {cap}, Format Code = {twCapability.ConType}, Item Type = {type_id}"
                         raise exceptions.CapabilityFormatNotSupported(msg)
                     ctype = _mapping.get(type_id)
                     val = ct.cast(ptr + 2, ct.POINTER(ctype))[0]
@@ -212,9 +219,7 @@ class Source(object):
                 elif twCapability.ConType == TWON_ENUMERATION:
                     enum = ct.cast(ptr, ct.POINTER(TW_ENUMERATION)).contents
                     if not _is_good_type(enum.ItemType):
-                        msg = "Capability Code = %d, Format Code = %d, Item Type = %d" % (cap,
-                                                                                          twCapability.ConType,
-                                                                                          enum.ItemType)
+                        msg = f"Capability Code = {cap}, Format Code = {twCapability.ConType}, Item Type = {enum.ItemType}"
                         raise exceptions.CapabilityFormatNotSupported(msg)
                     ctype = _mapping[enum.ItemType]
                     item_p = ct.cast(ptr + ct.sizeof(TW_ENUMERATION), ct.POINTER(ctype))
@@ -223,15 +228,13 @@ class Source(object):
                 elif twCapability.ConType == TWON_ARRAY:
                     arr = ct.cast(ptr, ct.POINTER(TW_ARRAY)).contents
                     if not _is_good_type(arr.ItemType):
-                        msg = "Capability Code = %d, Format Code = %d, Item Type = %d" % (cap,
-                                                                                          twCapability.ConType,
-                                                                                          arr.ItemType)
+                        msg = f"Capability Code = {cap}, Format Code = {twCapability.ConType}, Item Type = {arr.ItemType}"
                         raise exceptions.CapabilityFormatNotSupported(msg)
                     ctype = _mapping[arr.ItemType]
                     item_p = ct.cast(ptr + ct.sizeof(TW_ARRAY), ct.POINTER(ctype))
                     return arr.ItemType, [el for el in item_p[0:arr.NumItems]]
                 else:
-                    msg = "Capability Code = %d, Format Code = %d" % (cap, twCapability.ConType)
+                    msg = f"Capability Code = {cap}, Format Code = {twCapability.ConType}"
                     raise exceptions.CapabilityFormatNotSupported(msg)
             finally:
                 self._unlock(twCapability.hContainer)
@@ -638,7 +641,6 @@ class Source(object):
 
         def callback():
             filepath = before(self.image_info)
-            import os
             _, ext = os.path.splitext(filepath)
             ext = ext.lower()
             if ext != '.bmp':
@@ -974,7 +976,7 @@ class SourceManager(object):
         else:
             raise RuntimeError('Unexpected result: %d' % rv)
 
-    def _user_select(self):
+    def _user_select(self) -> TW_IDENTITY | None:
         logger.info("starting source selection dialog")
         ds_id = TW_IDENTITY()
         rv = self._call(None,
@@ -1177,5 +1179,3 @@ def acquire(path,
     return res[0]
 
 
-# Following imports are needed for backward compatibility
-from .windows import *
