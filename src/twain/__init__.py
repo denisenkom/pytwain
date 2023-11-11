@@ -339,7 +339,7 @@ class Source(object):
         finally:
             self._free(handle)
         if rv == TWRC_CHECKSTATUS:
-            raise CheckStatus
+            raise exceptions.CheckStatus
 
     def reset_capability(self, cap: int):
         """This function is used to reset the value of a capability to the source default.
@@ -365,7 +365,7 @@ class Source(object):
                         ct.byref(il),
                         (TWRC_SUCCESS, TWRC_CHECKSTATUS))
         if rv == TWRC_CHECKSTATUS:
-            raise CheckStatus
+            raise exceptions.CheckStatus
 
     def get_image_layout(self) -> tuple[tuple[float, float, float, float], int, int, int]:
         """This function is used to ask the source for Image Layout.
@@ -462,7 +462,7 @@ class Source(object):
                     while more:
                         try:
                             more = callback()
-                        except CancelAll:
+                        except exceptions.CancelAll:
                             self._end_all_xfers()
                             break
 
@@ -1153,7 +1153,7 @@ def acquire(path,
             if frame:
                 try:
                     sd.set_image_layout(frame)
-                except CheckStatus:
+                except exceptions.CheckStatus:
                     pass
 
             res = []
