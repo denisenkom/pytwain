@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import platform
 import ctypes as ct
+import struct
 
 
 class BITMAPINFOHEADER(ct.Structure):
@@ -37,6 +40,5 @@ def convert_dib_to_bmp(dib_bytes: bytes | ct.Array[ct.c_char]) -> bytes:
     bih = BITMAPINFOHEADER.from_buffer(dib_bytes)
     bits_offset = file_header_size + bih.biSize + bih.biClrUsed * 4
     file_size = len(dib_bytes) + file_header_size
-    import struct
     file_header = struct.pack('=ccLHHL', b"B", b"M", file_size, 0, 0, bits_offset)
     return file_header + dib_bytes

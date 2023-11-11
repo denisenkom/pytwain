@@ -1,28 +1,29 @@
 import ctypes as ct
+import tempfile
+import os
 import warnings
 from . import utils
 from .utils import convert_dib_to_bmp
 
 
-def _win_check(result, func, args):
+def _win_check(result, func, _):
     if func is GlobalFree:
         if result:
             raise ct.WinError()
         return None
-    elif func is GlobalUnlock:
+    if func is GlobalUnlock:
         if not result and ct.GetLastError() != 0:
             raise ct.WinError()
         return result
-    elif func is GetMessage:
+    if func is GetMessage:
         if result == -1:
             raise ct.WinError()
         return result
-    elif func is TranslateMessage or func is DispatchMessage:
+    if func is TranslateMessage or func is DispatchMessage:
         return result
-    else:
-        if not result:
-            raise ct.WinError()
-        return result
+    if not result:
+        raise ct.WinError()
+    return result
 
 
 if utils.is_windows():
@@ -68,15 +69,13 @@ def dib_to_bm_file(handle, path=None):
         dib_bytes = (ct.c_char * size).from_address(ptr)
         bmp = convert_dib_to_bmp(dib_bytes)
         if path:
-            f = open(path, 'wb')
-            try:
+            with open(path, 'wb') as f:
                 f.write(bmp)
-            finally:
-                f.close()
         else:
             return bmp
     finally:
         GlobalUnlock(handle)
+    return None
 
 
 def dib_to_xbm_file(handle, path=None):
@@ -94,8 +93,6 @@ def dib_to_xbm_file(handle, path=None):
 
         Can only be used with lowlevel 1.x sources
     """
-    import tempfile
-    import os
     handle, bmppath = tempfile.mkstemp('.bmp')
     os.close(handle)
     dib_to_bm_file(handle, bmppath)

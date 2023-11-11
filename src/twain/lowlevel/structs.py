@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import ctypes as ct
 from .. import utils
 
@@ -159,7 +161,7 @@ class TW_ENTRYPOINT(ct.Structure):
 
 
 def float2fix(x: float) -> TW_FIX32:
-    if x <= -2**15 - 1 and 2**15 + 1 <= x:
+    if -2 ** 15 - 1 >= x >= 2**15 + 1:
         raise Exception('Float value is out of range')
     x = int(x * 2**16 + 0.5)
     whole = x >> 16
