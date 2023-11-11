@@ -78,7 +78,7 @@ class wxFrame1(wx.Frame):
                                   pos=wx.Point(2, 387), size=wx.Size(756, 82), style=wx.TE_MULTILINE, value='')
         # self.txtLog.SetTitle('')
         self.txtLog.SetLabel('')
-        self.txtLog.SetToolTipString('LogWindow')
+        self.txtLog.SetToolTip('Log Window')
 
         self.listCaps = wx.ListCtrl(id=wxID_WXFRAME1LISTCAPS, name='listCaps', parent=self.splitterWindow1,
                                     pos=wx.Point(2, 2), size=wx.Size(756, 378), style=wx.LC_REPORT,
@@ -229,7 +229,7 @@ class wxFrame1(wx.Frame):
             self._init_coll_listCaps_Columns(self.listCaps)
             listIndex = 0
             for capname in self.CapabilityNames:
-                self.listCaps.InsertStringItem(listIndex, capname)
+                self.listCaps.InsertItem(listIndex, capname)
                 listIndex = listIndex + 1
 
             ### Colour code the list, depending on whether the capability
@@ -266,8 +266,8 @@ class wxFrame1(wx.Frame):
                     curval = str(curval)
             except Exception as exc:
                 capval = type(exc).__name__ + str(exc)
-            self.listCaps.SetStringItem(i, 1, capval)
-            self.listCaps.SetStringItem(i, 2, curval)
+            self.listCaps.SetItem(i, 1, capval)
+            self.listCaps.SetItem(i, 2, curval)
         self.statusBar1.SetStatusText("Refreshed Capabilities", 0)
 
     def OnFilemenuitems4Menu(self, event):
