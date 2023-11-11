@@ -6,14 +6,15 @@ This version does not use callbacks. Instead, it polls to check to
 see if the image is ready. Callbacks do not work with twainmodule and
 Tkinter in python 2.5
 """
-
+import tkinter
 from tkinter import *
 
 from simple_base import TwainBase
 
 import traceback, sys
 
-TITLE="Simple Twain Demo Using Tkinter"
+TITLE = "Simple Twain Demo Using Tkinter"
+
 
 class MainWindow(Frame, TwainBase):
     def __init__(self, title):
@@ -31,7 +32,8 @@ class MainWindow(Frame, TwainBase):
         File['menu'] = File.menu
         File.pack(side="left")
         MenuPanel.pack(side="top", fill=X, expand=1)
-        self.tk_menuBar(File)
+        menubar = tkinter.Menu()
+        self.master.config(menu=menubar)
         self.pack(fill="both")
         self.bind('<Destroy>', self.OnQuit)
 
@@ -49,7 +51,7 @@ class MainWindow(Frame, TwainBase):
 
     def MnuQuit(self, event=None):
         self.unbind('<Destroy>')
-        self.Terminate()          # Terminate base class
+        self.Terminate()  # Terminate base class
         self.quit()
 
     def OnQuit(self, event=None):
@@ -75,11 +77,11 @@ class MainWindow(Frame, TwainBase):
             self.imageLabel.pack(side="left", fill="both", expand=1)
             self.master.title(filename)
             # Need to keep this object resident
-            self.imagedata= imagedata
+            self.imagedata = imagedata
         except:
             ei = sys.exc_info()
             traceback.print_exception(ei[0], ei[1], ei[2])
-            
+
     def LogMessage(self, message):
         self.master.title(message)
 
@@ -87,5 +89,5 @@ class MainWindow(Frame, TwainBase):
         self.PollForImage()
         self.after(250, self.OnIdleTimer)
 
+
 MainWindow(TITLE).mainloop()
- 

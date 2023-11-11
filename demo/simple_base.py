@@ -61,7 +61,7 @@ class TwainBase:
         if self.SD:
             self.SD.destroy()
             self.SD=None
-        self.SD = self.SM.OpenSource()
+        self.SD = self.SM.open_source()
         if self.SD:
             self.LogMessage(self.ProductName+': ' + self.SD.GetSourceName())
 
