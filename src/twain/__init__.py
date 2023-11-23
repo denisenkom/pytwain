@@ -32,7 +32,7 @@ _exc_mapping = {
     constants.TWCC_CAPBADOPERATION: exceptions.CapBadOperation,
     constants.TWCC_CAPSEQERROR: exceptions.CapSeqError,
     constants.TWCC_DENIED: exceptions.DeniedError,
-    constants.TWCC_FILEEXISTS: exceptions.FileExistsError,
+    constants.TWCC_FILEEXISTS: FileExistsError,
     constants.TWCC_FILENOTFOUND: FileNotFoundError,
     constants.TWCC_NOTEMPTY: exceptions.NotEmptyError,
     constants.TWCC_PAPERJAM: exceptions.PaperJam,
@@ -1138,8 +1138,7 @@ class SourceManager:
             )
             if rv != constants.TWRC_SUCCESS:
                 raise exceptions.SMOpenFailed(
-                    "[%s], return code %d from DG_CONTROL DAT_ENTRYPOINT MSG_GET"
-                    % (dsm_name, rv)
+                    f"[{dsm_name}], return code {rv} from DG_CONTROL DAT_ENTRYPOINT MSG_GET"
                 )
             self._alloc = entrypoint.DSM_MemAllocate
             self._free = entrypoint.DSM_MemFree
@@ -1216,11 +1215,11 @@ class SourceManager:
                 raise exceptions.TwainError()
             code = status.ConditionCode
             exc = _exc_mapping.get(
-                code, exceptions.UnknownError("ConditionCode = %d" % code)
+                code, exceptions.UnknownError(f"ConditionCode = {code}")
             )
             raise exc
         else:
-            raise RuntimeError("Unexpected result: %d" % rv)
+            raise RuntimeError(f"Unexpected result: {rv}")
 
     def _user_select(self) -> structs.TW_IDENTITY | None:
         logger.info("starting source selection dialog")
@@ -1300,7 +1299,7 @@ class SourceManager:
     @property
     def source_list(self) -> list[str]:
         """Returns a list containing the names of available sources"""
-        names: typing.List[str] = []
+        names: list[str] = []
         ds_id = structs.TW_IDENTITY()
         try:
             rv = self._call(

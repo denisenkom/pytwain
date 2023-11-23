@@ -97,12 +97,6 @@ class DeniedError(TwainError):
     """
 
 
-class FileExistsError(TwainError):
-    """
-    Specified file already exists.
-    """
-
-
 class FileWriteError(TwainError):
     """
     Operation failed writing to the file.
