@@ -6,6 +6,7 @@ import weakref
 import warnings
 import os
 import sys
+import ctypes as ct
 
 from . import windows
 from . import utils
@@ -14,8 +15,6 @@ from .lowlevel import constants
 from .lowlevel import structs
 
 # Following imports are needed for backward compatibility
-
-import ctypes as ct
 
 logger = logging.getLogger("twain")
 
@@ -997,8 +996,7 @@ def _get_protocol_major_version(requested_protocol_major_version: None | int) ->
         # On Windows default to major version 1 since version 2 is not supported
         # by almost all scanners
         return 1 or requested_protocol_major_version
-    else:
-        return 2 or requested_protocol_major_version
+    return 2 or requested_protocol_major_version
 
 
 def _get_dsm(dsm_name: str | None, protocol_major_version: int) -> ct.CDLL:
@@ -1006,15 +1004,14 @@ def _get_dsm(dsm_name: str | None, protocol_major_version: int) -> ct.CDLL:
         is64bit = sys.maxsize > 2**32
         if dsm_name:
             return ct.WinDLL(dsm_name)
+        if protocol_major_version == 1 and not is64bit:
+            dsm_name = os.path.join(os.environ["WINDIR"], "twain_32.dll")
         else:
-            if protocol_major_version == 1 and not is64bit:
-                dsm_name = os.path.join(os.environ["WINDIR"], "twain_32.dll")
-            else:
-                dsm_name = "twaindsm.dll"
+            dsm_name = "twaindsm.dll"
         try:
             logger.info("attempting to load dll: %s", dsm_name)
             return ct.WinDLL(dsm_name)
-        except WindowsError as e:
+        except OSError as e:
             logger.error("load failed with error %s", e)
             raise exceptions.SMLoadFileFailed(e)
     else:
