@@ -354,7 +354,7 @@ class Source:
         """
         if not _is_good_type(type_id):
             raise exceptions.CapabilityFormatNotSupported(
-                "Capability Code = %d, Format Code = %d" % (cap, type_id)
+                f"Capability Code = {cap}, Format Code = {type_id}"
             )
         ctype = _mapping[type_id]
         if type_id in (
@@ -1007,7 +1007,7 @@ class Source:
         return self.xfer_image_by_file()
 
 
-def _get_protocol_major_version(requested_protocol_major_version: None | int) -> int:
+def _get_protocol_major_version(requested_protocol_major_version: None | typing.Literal[1, 2]) -> typing.Literal[1, 2]:
     if requested_protocol_major_version not in [None, 1, 2]:
         raise ValueError("Invalid protocol version specified")
     if utils.is_windows():
@@ -1017,7 +1017,17 @@ def _get_protocol_major_version(requested_protocol_major_version: None | int) ->
     return 2 or requested_protocol_major_version
 
 
-def _get_dsm(dsm_name: str | None, protocol_major_version: int) -> ct.CDLL:
+def _get_dsm(dsm_name: str | None, protocol_major_version: typing.Literal[1, 2]) -> ct.CDLL:
+    """
+    Loads TWAIN Data Source Manager DLL.
+    If dsm_name parameter is set will load that exact DSM DLL.
+    If it is not set will use heuristic to determine which DSM to use based on the specified protocol version.
+    For example on Windows it will use bundled twain_32.dll if version 1 was specified and current process is a 32 bit process,
+    otherwise will use twaindsm.dll which does not come with Windows by default and needs to be installed separately.
+
+    :param dsm_name: Path to DSM DLL or null to allow automatic detection
+    :param protocol_major_version: A hint for which TWAIN protocol major version is needed
+    """
     if sys.platform == "win32":
         is64bit = sys.maxsize > 2**32
         if dsm_name:
@@ -1058,7 +1068,7 @@ class SourceManager:
         Country: int = constants.TWCY_USA,
         Info: str = "",
         ProductName: str = "TWAIN Python Interface",
-        ProtocolMajor: int | None = None,
+        ProtocolMajor: typing.Literal[1, 2] | None = None,
         ProtocolMinor: int | None = None,
         SupportedGroups: int = constants.DG_IMAGE | constants.DG_CONTROL,
         Manufacturer: str = "pytwain",
@@ -1071,6 +1081,8 @@ class SourceManager:
 
         :param parent_window: can contain Tk, Wx or Gtk window object or the windows
             handle of the main window
+        :keyword dsm_name: Optional path or name of the TWAIN Data Source Manager DLL,
+                           if not specified will try to locate one automatically.
         :keyword MajorNum:   default = 1
         :keyword MinorNum:   default = 0
         :keyword Language:   default = TWLG_USA
@@ -1218,7 +1230,7 @@ class SourceManager:
         rv = self._entry(self._app_id, dest_id, dg, dat, msg, buf)
         if rv == constants.TWRC_SUCCESS or rv in expected_returns:
             return rv
-        elif rv == constants.TWRC_FAILURE:
+        if rv == constants.TWRC_FAILURE:
             status = structs.TW_STATUS()
             rv = self._entry(
                 self._app_id,
@@ -1230,7 +1242,7 @@ class SourceManager:
             )
             if rv != constants.TWRC_SUCCESS:
                 logger.warning(
-                    f"Getting additional error information returned non success code: {rv}"
+                    "Getting additional error information returned non success code: %d", rv
                 )
                 raise exceptions.TwainError()
             code = status.ConditionCode
@@ -1238,8 +1250,7 @@ class SourceManager:
                 code, exceptions.UnknownError(f"ConditionCode = {code}")
             )
             raise exc
-        else:
-            raise RuntimeError(f"Unexpected result: {rv}")
+        raise RuntimeError(f"Unexpected result: {rv}")
 
     def _user_select(self) -> structs.TW_IDENTITY | None:
         logger.info("starting source selection dialog")
@@ -1256,12 +1267,11 @@ class SourceManager:
         if rv == constants.TWRC_SUCCESS:
             logger.info("user selected source with id %s", ds_id.Id)
             return ds_id
-        elif rv == constants.TWRC_CANCEL:
+        if rv == constants.TWRC_CANCEL:
             logger.info("user cancelled selection")
             return None
-        else:
-            # This is unexpected since _call should only return values from expected_returns list
-            raise RuntimeError(f"Got unexpected return value {rv} from _call method")
+        # This is unexpected since _call should only return values from expected_returns list
+        raise RuntimeError(f"Got unexpected return value {rv} from _call method")
 
     def _open_ds(self, ds_id: structs.TW_IDENTITY) -> None:
         logger.info("opening data source with id %s", ds_id.Id)
@@ -1410,7 +1420,7 @@ def acquire(
     show_ui: bool = False,
     dsm_name: str | None = None,
     modal: bool = False,
-):
+) -> dict | None:
     """Acquires single image into file
 
     :param path: Path where to save image
@@ -1421,6 +1431,8 @@ def acquire(
     :keyword frame: tuple (left, top, right, bottom) scan area in inches
     :keyword parent_window: can be Tk, Wx, Gtk window object or Win32 window handle
     :keyword show_ui: if True source's UI dialog will be presented to user
+    :keyword dsm_name: optional name or path for TWAIN Data Source Manager DLL
+    :keyword modal: whether to use modal dialog for scanner UI
 
     Returns a dictionary describing image, or None if scanning was cancelled by user
 
@@ -1432,6 +1444,8 @@ def acquire(
             "color": constants.TWPT_RGB,
         }
         twain_pixel_type = pixel_type_map[pixel_type]
+    else:
+        twain_pixel_type = None
     if not parent_window:
         from tkinter import Tk
 
@@ -1442,7 +1456,7 @@ def acquire(
         if not sd:
             return None
         try:
-            if pixel_type:
+            if twain_pixel_type:
                 sd.set_capability(
                     constants.ICAP_PIXELTYPE, constants.TWTY_UINT16, twain_pixel_type
                 )
@@ -1460,13 +1474,13 @@ def acquire(
                 except exceptions.CheckStatus:
                     pass
 
-            res = []
+            res: list[dict] = []
 
-            def before(img_info):
+            def before(img_info: dict) -> str:
                 res.append(img_info)
                 return path
 
-            def after(more):
+            def after(more: int) -> None:
                 if more:
                     raise exceptions.CancelAll
 
