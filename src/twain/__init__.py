@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import collections.abc
 import logging
 import typing
 import weakref
@@ -73,7 +74,7 @@ def _is_good_type(type_id: int) -> bool:
 
 
 def _struct2dict(
-    struct: ct.Structure, decode: typing.Callable[[bytes], str]
+    struct: ct.Structure, decode: collections.abc.Callable[[bytes], str]
 ) -> dict[str, typing.Any]:
     result = {}
     for field, _ in struct._fields_:
@@ -557,7 +558,7 @@ class Source:
             self._state = "ready"
         return rv, event.TWMessage
 
-    def _modal_loop(self, callback: typing.Callable[[int], None] | None) -> None:
+    def _modal_loop(self, callback: collections.abc.Callable[[int], None] | None) -> None:
         logger.info("entering modal loop")
         done = False
         msg = structs.MSG()
@@ -578,7 +579,7 @@ class Source:
 
     def _acquire(
         self,
-        callback: typing.Callable[[], int],
+        callback: collections.abc.Callable[[], int],
         show_ui: bool = True,
         modal: bool = False,
     ) -> None:
@@ -788,8 +789,8 @@ class Source:
 
     def acquire_file(
         self,
-        before: typing.Callable[[dict], str],
-        after: typing.Callable[[int], None] = lambda more: None,
+        before: collections.abc.Callable[[dict], str],
+        after: collections.abc.Callable[[int], None] = lambda more: None,
         show_ui: bool = True,
         modal: bool = False,
     ) -> None:
@@ -841,8 +842,8 @@ class Source:
 
     def acquire_natively(
         self,
-        after: typing.Callable[[_IImage, int], None],
-        before: typing.Callable[[dict], None] = lambda img_info: None,
+        after: collections.abc.Callable[[_IImage, int], None],
+        before: collections.abc.Callable[[dict], None] = lambda img_info: None,
         show_ui: bool = True,
         modal: bool = False,
     ) -> None:
@@ -1097,7 +1098,7 @@ class SourceManager:
 
         """
         self._sources: weakref.WeakSet[Source] = weakref.WeakSet()
-        self._cb: typing.Callable[[int], None] | None = None
+        self._cb: collections.abc.Callable[[int], None] | None = None
         self._state = "closed"
         self._parent_window = parent_window
         self._hwnd = 0
@@ -1361,7 +1362,7 @@ class SourceManager:
             )
         return names
 
-    def set_callback(self, cb: typing.Callable[[int], None] | None):
+    def set_callback(self, cb: collections.abc.Callable[[int], None] | None):
         """Register a python function to be used for notification that the
         transfer is ready, etc.
         """
