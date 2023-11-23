@@ -2,6 +2,7 @@
 # Boa:App:BoaApp
 
 import wx
+import logging
 
 import wxFrame1
 
@@ -30,4 +31,5 @@ def main():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

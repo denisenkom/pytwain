@@ -87,7 +87,9 @@ class TwainBase:
         elif self.XferMethod == XferNatively:
             xfermech = twain.TWSX_NATIVE
         self.SD.SetCapability(twain.ICAP_XFERMECH, twain.TWTY_UINT16, xfermech)
-        self.SD.RequestAcquire(0, 0)  # 1,1 to show scanner user interface
+        self.SD.request_acquire(
+            show_ui=True, modal_ui=True
+        )  # 1,1 to show scanner user interface
         self.AcquirePending = True
         self.LogMessage(self.ProductName + ":" + "Waiting for Scanner")
         if hasattr(self.SD, "ModalLoop"):
@@ -120,7 +122,7 @@ class TwainBase:
         try:
             if self.XferMethod == XferNatively:
                 XferFileName = tmpfilename
-                (handle, more_to_come) = self.SD.XferImageNatively()
+                (handle, more_to_come) = self.SD.xfer_image_natively()
                 twain.DIBToBMFile(handle, XferFileName)
                 twain.GlobalHandleFree(handle)
                 self.LogMessage(self.ProductName + ":" + "Image acquired natively")

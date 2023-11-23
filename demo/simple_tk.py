@@ -12,6 +12,7 @@ from tkinter import *
 from simple_base import TwainBase
 
 import traceback, sys
+import logging
 
 TITLE = "Simple Twain Demo Using Tkinter"
 
@@ -90,4 +91,5 @@ class MainWindow(Frame, TwainBase):
         self.after(250, self.OnIdleTimer)
 
 
+logging.basicConfig(level=logging.INFO)
 MainWindow(TITLE).mainloop()

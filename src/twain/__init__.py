@@ -203,6 +203,7 @@ class Source:
 
     def _get_capability(self, cap: int, current: int):
         twCapability = structs.TW_CAPABILITY(cap, constants.TWON_DONTCARE16, 0)
+        logger.info("Calling DAT_CAPABILITY/%d", current)
         self._call(
             constants.DG_CONTROL,
             constants.DAT_CAPABILITY,
@@ -388,6 +389,7 @@ class Source:
             finally:
                 self._unlock(handle)
             capability = structs.TW_CAPABILITY(cap, constants.TWON_ONEVALUE, handle)
+            logger.info("Calling DAT_CAPABILITY/MSG_SET")
             rv = self._call(
                 constants.DG_CONTROL,
                 constants.DAT_CAPABILITY,
@@ -406,6 +408,7 @@ class Source:
         :param cap: Capability Identifier (lowlevel.CAP_* or lowlevel.ICAP_*).
         """
         capability = structs.TW_CAPABILITY(Cap=cap)
+        logger.info("Calling DAT_CAPABILITY/MSG_RESET")
         self._call(
             constants.DG_CONTROL,
             constants.DAT_CAPABILITY,
@@ -431,6 +434,7 @@ class Source:
             PageNumber=page_number,
             FrameNumber=frame_number,
         )
+        logger.info("Calling DAT_IMAGELAYOUT/MSG_SET")
         rv = self._call(
             constants.DG_IMAGE,
             constants.DAT_IMAGELAYOUT,
@@ -452,6 +456,7 @@ class Source:
         Valid states 4 through 6
         """
         il = structs.TW_IMAGELAYOUT()
+        logger.info("Calling DAT_IMAGELAYOUT/MSG_GET")
         self._call(
             constants.DG_IMAGE,
             constants.DAT_IMAGELAYOUT,
@@ -476,6 +481,7 @@ class Source:
         Valid states 4 through 6
         """
         il = structs.TW_IMAGELAYOUT()
+        logger.info("Calling DAT_IMAGELAYOUT/MSG_GETDEFAULT")
         self._call(
             constants.DG_IMAGE,
             constants.DAT_IMAGELAYOUT,
@@ -492,6 +498,7 @@ class Source:
     def reset_image_layout(self):
         """This function is used to reset Image Layout to its default settings"""
         il = structs.TW_IMAGELAYOUT()
+        logger.info("Calling DAT_IMAGELAYOUT/MSG_RESET")
         self._call(
             constants.DG_IMAGE,
             constants.DAT_IMAGELAYOUT,
@@ -507,6 +514,7 @@ class Source:
         """
         ui = structs.TW_USERINTERFACE(ShowUI=show_ui, ModalUI=modal_ui, hParent=hparent)
         logger.info("starting scan")
+        logger.info("Calling DAT_USERINTERFACE/MSG_ENALEDS")
         self._call(
             constants.DG_CONTROL,
             constants.DAT_USERINTERFACE,
@@ -518,6 +526,7 @@ class Source:
     def _disable(self):
         """This function is used to ask the source to hide the user interface."""
         ui = structs.TW_USERINTERFACE()
+        logger.info("Calling DAT_USERINTERFACE/MSG_DISABLEDS")
         self._call(
             constants.DG_CONTROL,
             constants.DAT_USERINTERFACE,
@@ -534,6 +543,7 @@ class Source:
         events.
         """
         event = structs.TW_EVENT(ct.cast(msg_ref, ct.c_void_p), 0)
+        logger.info("Calling DAT_EVENT/MSG_PROCESSEVENT")
         rv = self._call(
             constants.DG_CONTROL,
             constants.DAT_EVENT,
@@ -599,6 +609,7 @@ class Source:
         Valid states: 4, 5, 6
         """
         sfx = structs.TW_SETUPFILEXFER()
+        logger.info("Calling DAT_SETUPFILEXFER/MSG_GET")
         self._call(
             constants.DG_CONTROL,
             constants.DAT_SETUPFILEXFER,
@@ -611,6 +622,7 @@ class Source:
     def file_xfer_params(self, params: tuple[str, int]) -> None:
         (path, fmt) = params
         sfx = structs.TW_SETUPFILEXFER(self._encode(path), fmt, 0)
+        logger.info("Calling DAT_SETUPFILEXFER/MSG_SET")
         self._call(
             constants.DG_CONTROL,
             constants.DAT_SETUPFILEXFER,
@@ -630,6 +642,7 @@ class Source:
         Valid states: 6, 7
         """
         ii = structs.TW_IMAGEINFO()
+        logger.info("Calling DAT_IMAGEINFO/MSG_GET")
         self._call(
             constants.DG_IMAGE, constants.DAT_IMAGEINFO, constants.MSG_GET, ct.byref(ii)
         )
@@ -648,6 +661,7 @@ class Source:
 
     def _get_native_image(self) -> tuple[int, ct.c_void_p]:
         hbitmap = ct.c_void_p()
+        logger.info("Calling DAT_IMAGENATIVEXFER")
         rv = self._call(
             constants.DG_IMAGE,
             constants.DAT_IMAGENATIVEXFER,
@@ -658,6 +672,7 @@ class Source:
         return rv, hbitmap
 
     def _get_file_image(self) -> int:
+        logger.info("Calling DAT_IMAGEFILEXFER")
         return self._call(
             constants.DG_IMAGE,
             constants.DAT_IMAGEFILEXFER,
@@ -667,6 +682,7 @@ class Source:
         )
 
     def _get_file_audio(self) -> int:
+        logger.info("Calling DAT_AUDIOFILEXFER")
         return self._call(
             constants.DG_AUDIO,
             constants.DAT_AUDIOFILEXFER,
@@ -677,6 +693,7 @@ class Source:
 
     def _end_xfer(self) -> int:
         px = structs.TW_PENDINGXFERS()
+        logger.info("Calling DAT_PENDINGXFERS/MSG_ENDXFER")
         self._call(
             constants.DG_CONTROL,
             constants.DAT_PENDINGXFERS,
@@ -690,6 +707,7 @@ class Source:
     def _end_all_xfers(self) -> None:
         """Cancel all outstanding transfers on the data source."""
         px = structs.TW_PENDINGXFERS()
+        logger.info("Calling DAT_PENDINGXFERS/MSG_RESET")
         self._call(
             constants.DG_CONTROL,
             constants.DAT_PENDINGXFERS,
@@ -1118,6 +1136,7 @@ class SourceManager:
             ProductFamily=ProductFamily.encode("utf8"),
             ProductName=ProductName.encode("utf8"),
         )
+        logger.info("Calling DAT_PARENT/MSG_OPENDSM")
         self._call(
             None,
             constants.DG_CONTROL,
@@ -1168,6 +1187,7 @@ class SourceManager:
         self.close()
 
     def _close_dsm(self) -> None:
+        logger.info("Calling DAT_PARENT/MSG_CLOSEDSM")
         self._call(
             None,
             constants.DG_CONTROL,
@@ -1224,6 +1244,7 @@ class SourceManager:
     def _user_select(self) -> structs.TW_IDENTITY | None:
         logger.info("starting source selection dialog")
         ds_id = structs.TW_IDENTITY()
+        logger.info("Calling DAT_IDENTITY/MSG_USERSELECT")
         rv = self._call(
             None,
             constants.DG_CONTROL,
@@ -1244,6 +1265,7 @@ class SourceManager:
 
     def _open_ds(self, ds_id: structs.TW_IDENTITY) -> None:
         logger.info("opening data source with id %s", ds_id.Id)
+        logger.info("Calling DAT_IDENTITY/MSG_OPENDS")
         self._call(
             None,
             constants.DG_CONTROL,
@@ -1254,6 +1276,7 @@ class SourceManager:
 
     def _close_ds(self, ds_id: structs.TW_IDENTITY) -> None:
         logger.info("closing data source with id %s", ds_id.Id)
+        logger.info("Calling DAT_IDENTITY/MSG_CLOSEDS")
         self._call(
             None,
             constants.DG_CONTROL,
@@ -1302,6 +1325,7 @@ class SourceManager:
         names: list[str] = []
         ds_id = structs.TW_IDENTITY()
         try:
+            logger.info("Calling DAT_IDENTITY/MSG_GETFIRST")
             rv = self._call(
                 None,
                 constants.DG_CONTROL,
@@ -1316,6 +1340,7 @@ class SourceManager:
 
         while rv != constants.TWRC_ENDOFLIST:
             names.append(self._decode(ds_id.ProductName))
+            logger.info("Calling DAT_IDENTITY/MSG_GETNEXT")
             rv = self._call(
                 None,
                 constants.DG_CONTROL,
