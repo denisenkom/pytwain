@@ -71,7 +71,7 @@ def dib_to_bm_file(handle, path: str | None = None) -> bytes | None:
         dib_bytes = (ct.c_char * size).from_address(ptr)
         bmp = convert_dib_to_bmp(dib_bytes)
         if path:
-            with open(path, 'wb') as f:
+            with open(path, "wb") as f:
                 f.write(bmp)
         else:
             return bmp
@@ -95,7 +95,7 @@ def dib_to_xbm_file(handle, path: str | None = None):
 
         Can only be used with lowlevel 1.x sources
     """
-    handle, bmppath = tempfile.mkstemp('.bmp')
+    handle, bmppath = tempfile.mkstemp(".bmp")
     os.close(handle)
     dib_to_bm_file(handle, bmppath)
     try:
@@ -103,7 +103,7 @@ def dib_to_xbm_file(handle, path: str | None = None):
         import Image  # type: ignore
     except ImportError:
         from PIL import Image
-    Image.open(bmppath).save(path, 'xbm')
+    Image.open(bmppath).save(path, "xbm")
     os.remove(bmppath)
 
 
@@ -123,7 +123,7 @@ def global_handle_get_bytes(handle, offset: int, count: int) -> bytes:
     ptr = GlobalLock(handle)
     try:
         char_ptr = ct.cast(ptr, ct.POINTER(ct.c_char))
-        return char_ptr[min(offset, size): min(offset + count, size)] # type: ignore # needs fixing
+        return char_ptr[min(offset, size) : min(offset + count, size)]  # type: ignore # needs fixing
     finally:
         GlobalUnlock(handle)
 
@@ -186,36 +186,52 @@ def global_handle_free(handle):
 
 # backward compatible aliases
 def DIBToBMFile(handle, path=None):
-    """ Backward compatible alias for :func:`dib_to_bm_file` """
-    warnings.warn("DIBToBMFile is deprecated, use dib_to_bm_file instead", DeprecationWarning)
+    """Backward compatible alias for :func:`dib_to_bm_file`"""
+    warnings.warn(
+        "DIBToBMFile is deprecated, use dib_to_bm_file instead", DeprecationWarning
+    )
     return dib_to_bm_file(handle, path)
 
 
 def DIBToXBMFile(handle, path=None):
-    """ Backward compatible alias for :func:`dib_to_xbm_file` """
-    warnings.warn("DIBToXBMFile is deprecated, use dib_to_xbm_file instead", DeprecationWarning)
+    """Backward compatible alias for :func:`dib_to_xbm_file`"""
+    warnings.warn(
+        "DIBToXBMFile is deprecated, use dib_to_xbm_file instead", DeprecationWarning
+    )
     return dib_to_xbm_file(handle, path)
 
 
 def GlobalHandleGetBytes(handle, offset, count):
-    """ Backward compatible alias for :func:`global_handle_get_bytes` """
-    warnings.warn("GlobalHandleGetBytes is deprecated, use global_handle_get_bytes instead", DeprecationWarning)
+    """Backward compatible alias for :func:`global_handle_get_bytes`"""
+    warnings.warn(
+        "GlobalHandleGetBytes is deprecated, use global_handle_get_bytes instead",
+        DeprecationWarning,
+    )
     return global_handle_get_bytes(handle, offset, count)
 
 
 def GlobalHandlePutBytes(handle, offset, count, data):
-    """ Backward compatible alias for :func:`global_handle_put_bytes` """
-    warnings.warn("GlobalHandlePutBytes is deprecated, use global_handle_put_bytes instead", DeprecationWarning)
+    """Backward compatible alias for :func:`global_handle_put_bytes`"""
+    warnings.warn(
+        "GlobalHandlePutBytes is deprecated, use global_handle_put_bytes instead",
+        DeprecationWarning,
+    )
     return global_handle_put_bytes(handle, offset, count, data)
 
 
 def GlobalHandleAllocate(flags, size):
-    """ Backward compatible alias for :func:`global_handle_allocate` """
-    warnings.warn("GlobalHandleAllocate is deprecated, use global_handle_allocate instead", DeprecationWarning)
+    """Backward compatible alias for :func:`global_handle_allocate`"""
+    warnings.warn(
+        "GlobalHandleAllocate is deprecated, use global_handle_allocate instead",
+        DeprecationWarning,
+    )
     return global_handle_allocate(flags, size)
 
 
 def GlobalHandleFree(handle):
-    """ Backward compatible alias for :func:`global_handle_free` """
-    warnings.warn("GlobalHandleFree is deprecated, use global_handle_free instead", DeprecationWarning)
+    """Backward compatible alias for :func:`global_handle_free`"""
+    warnings.warn(
+        "GlobalHandleFree is deprecated, use global_handle_free instead",
+        DeprecationWarning,
+    )
     return global_handle_free(handle)

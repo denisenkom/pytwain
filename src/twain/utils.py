@@ -7,24 +7,26 @@ import struct
 
 class BITMAPINFOHEADER(ct.Structure):
     _pack_ = 4
-    _fields_ = [('biSize', ct.c_uint32),
-                ('biWidth', ct.c_int32),
-                ('biHeight', ct.c_int32),
-                ('biPlanes', ct.c_uint16),
-                ('biBitCount', ct.c_uint16),
-                ('biCompression', ct.c_uint32),
-                ('biSizeImage', ct.c_uint32),
-                ('biXPelsPerMeter', ct.c_int32),
-                ('biYPelsPerMeter', ct.c_int32),
-                ('biClrUsed', ct.c_uint32),
-                ('biClrImportant', ct.c_uint32)]
+    _fields_ = [
+        ("biSize", ct.c_uint32),
+        ("biWidth", ct.c_int32),
+        ("biHeight", ct.c_int32),
+        ("biPlanes", ct.c_uint16),
+        ("biBitCount", ct.c_uint16),
+        ("biCompression", ct.c_uint32),
+        ("biSizeImage", ct.c_uint32),
+        ("biXPelsPerMeter", ct.c_int32),
+        ("biYPelsPerMeter", ct.c_int32),
+        ("biClrUsed", ct.c_uint32),
+        ("biClrImportant", ct.c_uint32),
+    ]
 
 
 def is_windows() -> bool:
     """
     Returns true if running on Windows
     """
-    return platform.system() == 'Windows'
+    return platform.system() == "Windows"
 
 
 def convert_dib_to_bmp(dib_bytes: bytes | ct.Array[ct.c_char]) -> bytes:
@@ -40,5 +42,5 @@ def convert_dib_to_bmp(dib_bytes: bytes | ct.Array[ct.c_char]) -> bytes:
     bih = BITMAPINFOHEADER.from_buffer(dib_bytes)
     bits_offset = file_header_size + bih.biSize + bih.biClrUsed * 4
     file_size = len(dib_bytes) + file_header_size
-    file_header = struct.pack('=ccLHHL', b"B", b"M", file_size, 0, 0, bits_offset)
+    file_header = struct.pack("=ccLHHL", b"B", b"M", file_size, 0, 0, bits_offset)
     return file_header + dib_bytes
