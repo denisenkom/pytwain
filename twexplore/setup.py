@@ -1,4 +1,4 @@
-#setup.py
+# setup.py
 
 ## This file is used to build the twexplore.exe program
 ## from this source. It uses the excellent py2exe package,
@@ -12,6 +12,4 @@
 from distutils.core import setup
 import py2exe
 
-setup(name='twexplore',
-        windows=['twexplore.py'
-])
+setup(name="twexplore", windows=["twexplore.py"])

@@ -9,7 +9,7 @@ def print_green(str):
 
 logging.basicConfig(level=logging.DEBUG)
 root = tkinter.Tk()
-root.title('testing cancellation')
+root.title("testing cancellation")
 sm = twain.SourceManager(root)
 ss = sm.open_source()
 ss.request_acquire(show_ui=False, modal_ui=False)
@@ -18,4 +18,6 @@ try:
 except twain.exceptions.DSTransferCancelled:
     print_green("SUCCESS")
 else:
-    raise RuntimeError("Cancellation exception was not raised, did you forget to cancel transfer?")
+    raise RuntimeError(
+        "Cancellation exception was not raised, did you forget to cancel transfer?"
+    )

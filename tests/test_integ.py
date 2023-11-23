@@ -25,7 +25,7 @@ def test_allocation(root_window):
 def test_dsm(root_window):
     with twain.SourceManager(root_window) as sm:
         if len(sm.source_list) == 0:
-            pytest.skip('No Sources present on the system')
+            pytest.skip("No Sources present on the system")
         ds_name = sm.source_list[0]
         with sm.open_source(str(ds_name)) as ds:
             val = ds.get_capability(twain.ICAP_YRESOLUTION)
@@ -35,34 +35,36 @@ def test_dsm(root_window):
 
 
 def test_scan(root_window):
-    logger.info('creating source manager')
+    logger.info("creating source manager")
     with twain.SourceManager(root_window) as sm:
-        logger.info('opening source')
+        logger.info("opening source")
         with sm.open_source() as ss:  # this posts a modeless dialog...
-            logger.info('request acquire')
+            logger.info("request acquire")
             ss.request_acquire(show_ui=False, modal_ui=True)
             handles = []
             more = 1
             try:
-                logger.info('transferring image')
+                logger.info("transferring image")
                 handle, more = ss.xfer_image_natively()
                 handles.append(handle)
             except twain.exceptions.DSTransferCancelled:
-                logger.info('cancelled')
+                logger.info("cancelled")
                 pass
             while more != 0:
                 try:
-                    logger.info('transferring image')
+                    logger.info("transferring image")
                     handle, more = ss.xfer_image_natively()
                     handles.append(handle)
                 except twain.exceptions.DSTransferCancelled:
-                    logger.info('cancelled')
+                    logger.info("cancelled")
                     more = 0
 
-            logger.info('transfer complete')
+            logger.info("transfer complete")
             index = 0
             curr_folder = os.path.dirname(__name__)
             for handle in handles:
-                twain.dib_to_bm_file(handle, os.path.join(curr_folder, "testscans/{}.bmp".format(index)))
+                twain.dib_to_bm_file(
+                    handle, os.path.join(curr_folder, "testscans/{}.bmp".format(index))
+                )
                 twain.global_handle_free(handle)
                 index += 1

@@ -27,15 +27,15 @@ class MainWindow(Frame, TwainBase):
         File.menu.add_command(label="Connect", command=self.MnuOpenScanner)
         File.menu.add_command(label="Acquire Natively", command=self.MnuAcquireNatively)
         File.menu.add_command(label="Acquire By File", command=self.MnuAcquireByFile)
-        File.menu.add('separator')
+        File.menu.add("separator")
         File.menu.add_command(label="Exit", command=self.MnuQuit)
-        File['menu'] = File.menu
+        File["menu"] = File.menu
         File.pack(side="left")
         MenuPanel.pack(side="top", fill=X, expand=1)
         menubar = tkinter.Menu()
         self.master.config(menu=menubar)
         self.pack(fill="both")
-        self.bind('<Destroy>', self.OnQuit)
+        self.bind("<Destroy>", self.OnQuit)
 
         self.imageLabel = Label(self)
         self.imageLabel.pack(side="left", fill="both", expand=1)
@@ -50,7 +50,7 @@ class MainWindow(Frame, TwainBase):
         self.after(250, self.OnIdleTimer)
 
     def MnuQuit(self, event=None):
-        self.unbind('<Destroy>')
+        self.unbind("<Destroy>")
         self.Terminate()  # Terminate base class
         self.quit()
 

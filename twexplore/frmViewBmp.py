@@ -1,4 +1,4 @@
-#Boa:Frame:wxFrame2
+# Boa:Frame:wxFrame2
 from io import BytesIO
 
 import wx
@@ -8,31 +8,55 @@ import os
 
 import twain
 
+
 def create(parent):
     return wxFrame2(parent)
 
-[wxID_WXFRAME2, wxID_WXFRAME2BMPIMAGE, wxID_WXFRAME2SCROLLEDWINDOW1, 
+
+[
+    wxID_WXFRAME2,
+    wxID_WXFRAME2BMPIMAGE,
+    wxID_WXFRAME2SCROLLEDWINDOW1,
 ] = [wx.NewId() for _init_ctrls in range(3)]
+
 
 class wxFrame2(wx.Frame):
     def _init_ctrls(self, prnt):
         # generated method, don't edit
-        wx.Frame.__init__(self, id=wxID_WXFRAME2, name='', parent=prnt,
-              pos=wx.Point(2, 2), size=wx.Size(649, 684),
-              style=wx.DEFAULT_FRAME_STYLE, title='View Image as BIT Map')
+        wx.Frame.__init__(
+            self,
+            id=wxID_WXFRAME2,
+            name="",
+            parent=prnt,
+            pos=wx.Point(2, 2),
+            size=wx.Size(649, 684),
+            style=wx.DEFAULT_FRAME_STYLE,
+            title="View Image as BIT Map",
+        )
         self.SetClientSize(wx.Size(641, 650))
 
-        self.scrolledWindow1 = wx.ScrolledWindow(id=wxID_WXFRAME2SCROLLEDWINDOW1,
-              name='scrolledWindow1', parent=self, pos=wx.Point(0, 0),
-              size=wx.Size(641, 650), style=wx.TAB_TRAVERSAL)
-        self.scrolledWindow1.SetConstraints(LayoutAnchors(self.scrolledWindow1,
-              True, True, True, True))
+        self.scrolledWindow1 = wx.ScrolledWindow(
+            id=wxID_WXFRAME2SCROLLEDWINDOW1,
+            name="scrolledWindow1",
+            parent=self,
+            pos=wx.Point(0, 0),
+            size=wx.Size(641, 650),
+            style=wx.TAB_TRAVERSAL,
+        )
+        self.scrolledWindow1.SetConstraints(
+            LayoutAnchors(self.scrolledWindow1, True, True, True, True)
+        )
         self.scrolledWindow1.SetAutoLayout(True)
 
-        self.bmpImage = wx.StaticBitmap(bitmap=wx.NullBitmap,
-              id=wxID_WXFRAME2BMPIMAGE, name='bmpImage',
-              parent=self.scrolledWindow1, pos=wx.Point(0, 0), size=wx.Size(640,
-              648), style=0)
+        self.bmpImage = wx.StaticBitmap(
+            bitmap=wx.NullBitmap,
+            id=wxID_WXFRAME2BMPIMAGE,
+            name="bmpImage",
+            parent=self.scrolledWindow1,
+            pos=wx.Point(0, 0),
+            size=wx.Size(640, 648),
+            style=0,
+        )
 
     def __init__(self, parent):
         self._init_ctrls(parent)
@@ -51,7 +75,9 @@ class wxFrame2(wx.Frame):
             self.bmpImage.SetBitmap(bmp)
             self.scrolledWindow1.maxWidth = bmp.GetWidth()
             self.scrolledWindow1.maxHeight = bmp.GetHeight()
-            self.scrolledWindow1.SetScrollbars(20, 20, int(bmp.GetWidth()/20), int(bmp.GetHeight()/20))
+            self.scrolledWindow1.SetScrollbars(
+                20, 20, int(bmp.GetWidth() / 20), int(bmp.GetHeight() / 20)
+            )
             self.bmpImage.Refresh()
         except Exception as exc:
             self.Control.DisplayException(exc, "View Bitmap")
@@ -66,8 +92,9 @@ class wxFrame2(wx.Frame):
             self.bmpImage.SetBitmap(bmp)
             self.scrolledWindow1.maxWidth = bmp.GetWidth()
             self.scrolledWindow1.maxHeight = bmp.GetHeight()
-            self.scrolledWindow1.SetScrollbars(20, 20, bmp.GetWidth()/20, bmp.GetHeight()/20)
+            self.scrolledWindow1.SetScrollbars(
+                20, 20, bmp.GetWidth() / 20, bmp.GetHeight() / 20
+            )
             self.bmpImage.Refresh()
         except Exception as exc:
             self.Control.DisplayException(exc, "View Bitmap")
-            
