@@ -69,6 +69,22 @@ _mapping = {
 }
 
 
+# Corresponding states are defined in TWAIN spec 2.11 paragraph
+# Data Source Manager states
+_DsmStates = typing.Literal[
+    "closed", # TWAIN state 2
+    "open", # TWAIN state 3
+]
+
+# Data Source states
+_SourceStates = typing.Literal[
+    "closed", # TWAIN state 2
+    "open", # TWAIN state 4
+    "enabled", # TWAIN state 5
+    "ready", # TWAIN state 6
+]
+
+
 def _is_good_type(type_id: int) -> bool:
     return type_id in list(_mapping.keys())
 
@@ -149,7 +165,7 @@ class Source:
     def __init__(self, sm: SourceManager, ds_id: structs.TW_IDENTITY):
         self._sm = sm
         self._id = ds_id
-        self._state = "open"
+        self._state: _SourceStates = "open"
         self._version2 = bool(ds_id.SupportedGroups & constants.DF_DS2)
         if self._version2:
             self._alloc = sm._alloc
@@ -253,8 +269,8 @@ class Source:
                         raise exceptions.CapabilityFormatNotSupported(msg)
                     ctype = _mapping[enum.ItemType]
                     item_p = ct.cast(
-                        ptr + ct.sizeof(structs.TW_ENUMERATION), ct.POINTER(ctype)
-                    )  # type: ignore # needs fixing
+                        ptr + ct.sizeof(structs.TW_ENUMERATION), ct.POINTER(ctype)  # type: ignore # needs fixing
+                    )
                     values = [el for el in item_p[0 : enum.NumItems]]
                     return enum.ItemType, (enum.CurrentIndex, enum.DefaultIndex, values)
                 elif twCapability.ConType == constants.TWON_ARRAY:
@@ -264,8 +280,8 @@ class Source:
                         raise exceptions.CapabilityFormatNotSupported(msg)
                     ctype = _mapping[arr.ItemType]
                     item_p = ct.cast(
-                        ptr + ct.sizeof(structs.TW_ARRAY), ct.POINTER(ctype)
-                    )  # type: ignore # needs fixing
+                        ptr + ct.sizeof(structs.TW_ARRAY), ct.POINTER(ctype)  # type: ignore # needs fixing
+                    )
                     return arr.ItemType, [el for el in item_p[0 : arr.NumItems]]
                 else:
                     msg = (
@@ -660,7 +676,11 @@ class Source:
             "Compression": ii.Compression,
         }
 
-    def _get_native_image(self) -> tuple[int, ct.c_void_p]:
+    def _get_native_image(self) -> ct.c_void_p | None:
+        """
+        Transfer image via memory. Should only be called when image is ready for transfer.
+        Returns handle to image or None if transfer was cancelled.
+        """
         hbitmap = ct.c_void_p()
         logger.info("Calling DAT_IMAGENATIVEXFER")
         rv = self._call(
@@ -670,7 +690,11 @@ class Source:
             ct.byref(hbitmap),
             (constants.TWRC_XFERDONE, constants.TWRC_CANCEL),
         )
-        return rv, hbitmap
+        if rv == constants.TWRC_XFERDONE:
+            return hbitmap
+        if rv == constants.TWRC_CANCEL:
+            return None
+        raise RuntimeError(f"Unexpected result returned from DAT_IMAGENATIVEXFER: {rv}")
 
     def _get_file_image(self) -> int:
         logger.info("Calling DAT_IMAGEFILEXFER")
@@ -693,6 +717,13 @@ class Source:
         )
 
     def _end_xfer(self) -> int:
+        """
+        This method should be called after every image transfer, successful or cancelled
+        Returns information about additional transfers:
+        * 0 - no more transfers available
+        * -1 - more images available but how many is unknown
+        * >0 - indicates how many more images are available
+        """
         px = structs.TW_PENDINGXFERS()
         logger.info("Calling DAT_PENDINGXFERS/MSG_ENDXFER")
         self._call(
@@ -760,9 +791,11 @@ class Source:
 
         Valid states: 6
         """
-        rv, handle = self._get_native_image()
+        handle = self._get_native_image()
+        # _end_xfer should be called even if transfer was cancelled
         more = self._end_xfer()
-        if rv == constants.TWRC_CANCEL:
+        # get_native_image returns None if transfer was cancelled
+        if not handle:
             raise exceptions.DSTransferCancelled
         return handle.value, more
 
@@ -860,10 +893,7 @@ class Source:
 
         def callback() -> int:
             before(self.image_info)
-            rv, handle = self._get_native_image()
-            more = self._end_xfer()
-            if rv == constants.TWRC_CANCEL:
-                raise exceptions.DSTransferCancelled
+            handle, more = self.xfer_image_natively()
             after(_Image(handle), more)  # type: ignore # needs fixing
             return more
 
@@ -1099,7 +1129,7 @@ class SourceManager:
         """
         self._sources: weakref.WeakSet[Source] = weakref.WeakSet()
         self._cb: collections.abc.Callable[[int], None] | None = None
-        self._state = "closed"
+        self._state : _DsmStates = "closed"
         self._parent_window = parent_window
         self._hwnd = 0
         if utils.is_windows():
