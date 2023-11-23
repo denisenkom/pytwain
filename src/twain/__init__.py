@@ -1,73 +1,71 @@
 from __future__ import annotations
 
 import logging
-import os
-import sys
 import typing
 import weakref
-
-from typing import Dict
+import warnings
+import os
+import sys
 
 from . import windows
 from . import utils
 from . import exceptions
-from .lowlevel.constants import *
-from .lowlevel.structs import *
+from .lowlevel import constants
+from .lowlevel import structs
 
 # Following imports are needed for backward compatibility
-from .windows import *
 
 import ctypes as ct
 
 logger = logging.getLogger("twain")
 
 _exc_mapping = {
-    TWCC_BUMMER: exceptions.GeneralFailure,
-    TWCC_LOWMEMORY: MemoryError,
-    TWCC_NODS: exceptions.NoDataSourceError,
-    TWCC_OPERATIONERROR: exceptions.OperationError,
-    TWCC_BADCAP: exceptions.BadCapability,
-    TWCC_BADPROTOCOL: exceptions.BadProtocol,
-    TWCC_BADVALUE: ValueError,
-    TWCC_SEQERROR: exceptions.SequenceError,
-    TWCC_BADDEST: exceptions.BadDestination,
-    TWCC_CAPUNSUPPORTED: exceptions.CapUnsupported,
-    TWCC_CAPBADOPERATION: exceptions.CapBadOperation,
-    TWCC_CAPSEQERROR: exceptions.CapSeqError,
-    TWCC_DENIED: exceptions.DeniedError,
-    TWCC_FILEEXISTS: exceptions.FileExistsError,
-    TWCC_FILENOTFOUND: FileNotFoundError,
-    TWCC_NOTEMPTY: exceptions.NotEmptyError,
-    TWCC_PAPERJAM: exceptions.PaperJam,
-    TWCC_PAPERDOUBLEFEED: exceptions.PaperDoubleFeedError,
-    TWCC_FILEWRITEERROR: exceptions.FileWriteError,
-    TWCC_CHECKDEVICEONLINE: exceptions.CheckDeviceOnlineError,
-    TWCC_MAXCONNECTIONS: exceptions.MaxConnectionsError,
+    constants.TWCC_BUMMER: exceptions.GeneralFailure,
+    constants.TWCC_LOWMEMORY: MemoryError,
+    constants.TWCC_NODS: exceptions.NoDataSourceError,
+    constants.TWCC_OPERATIONERROR: exceptions.OperationError,
+    constants.TWCC_BADCAP: exceptions.BadCapability,
+    constants.TWCC_BADPROTOCOL: exceptions.BadProtocol,
+    constants.TWCC_BADVALUE: ValueError,
+    constants.TWCC_SEQERROR: exceptions.SequenceError,
+    constants.TWCC_BADDEST: exceptions.BadDestination,
+    constants.TWCC_CAPUNSUPPORTED: exceptions.CapUnsupported,
+    constants.TWCC_CAPBADOPERATION: exceptions.CapBadOperation,
+    constants.TWCC_CAPSEQERROR: exceptions.CapSeqError,
+    constants.TWCC_DENIED: exceptions.DeniedError,
+    constants.TWCC_FILEEXISTS: exceptions.FileExistsError,
+    constants.TWCC_FILENOTFOUND: FileNotFoundError,
+    constants.TWCC_NOTEMPTY: exceptions.NotEmptyError,
+    constants.TWCC_PAPERJAM: exceptions.PaperJam,
+    constants.TWCC_PAPERDOUBLEFEED: exceptions.PaperDoubleFeedError,
+    constants.TWCC_FILEWRITEERROR: exceptions.FileWriteError,
+    constants.TWCC_CHECKDEVICEONLINE: exceptions.CheckDeviceOnlineError,
+    constants.TWCC_MAXCONNECTIONS: exceptions.MaxConnectionsError,
 }
 
 _ext_to_type = {
-    ".bmp": TWFF_BMP,
-    ".jpg": TWFF_JFIF,
-    ".jpeg": TWFF_JFIF,
-    ".png": TWFF_PNG,
-    ".tiff": TWFF_TIFF,
-    ".tif": TWFF_TIFF,
+    ".bmp": constants.TWFF_BMP,
+    ".jpg": constants.TWFF_JFIF,
+    ".jpeg": constants.TWFF_JFIF,
+    ".png": constants.TWFF_PNG,
+    ".tiff": constants.TWFF_TIFF,
+    ".tif": constants.TWFF_TIFF,
 }
 
 _mapping = {
-    TWTY_INT8: ct.c_int8,
-    TWTY_UINT8: ct.c_uint8,
-    TWTY_INT16: ct.c_int16,
-    TWTY_UINT16: ct.c_uint16,
-    TWTY_UINT32: ct.c_uint32,
-    TWTY_INT32: ct.c_int32,
-    TWTY_BOOL: ct.c_uint16,
-    TWTY_FIX32: TW_FIX32,
-    TWTY_FRAME: TW_FRAME,
-    TWTY_STR32: ct.c_char * 34,
-    TWTY_STR64: ct.c_char * 66,
-    TWTY_STR128: ct.c_char * 130,
-    TWTY_STR255: ct.c_char * 255,
+    constants.TWTY_INT8: ct.c_int8,
+    constants.TWTY_UINT8: ct.c_uint8,
+    constants.TWTY_INT16: ct.c_int16,
+    constants.TWTY_UINT16: ct.c_uint16,
+    constants.TWTY_UINT32: ct.c_uint32,
+    constants.TWTY_INT32: ct.c_int32,
+    constants.TWTY_BOOL: ct.c_uint16,
+    constants.TWTY_FIX32: structs.TW_FIX32,
+    constants.TWTY_FRAME: structs.TW_FRAME,
+    constants.TWTY_STR32: ct.c_char * 34,
+    constants.TWTY_STR64: ct.c_char * 66,
+    constants.TWTY_STR128: ct.c_char * 130,
+    constants.TWTY_STR255: ct.c_char * 255,
 }
 
 
@@ -148,11 +146,11 @@ class Source:
     :meth:`SourceManager.open_source`
     """
 
-    def __init__(self, sm: SourceManager, ds_id: TW_IDENTITY):
+    def __init__(self, sm: SourceManager, ds_id: structs.TW_IDENTITY):
         self._sm = sm
         self._id = ds_id
         self._state = "open"
-        self._version2 = bool(ds_id.SupportedGroups & DF_DS2)
+        self._version2 = bool(ds_id.SupportedGroups & constants.DF_DS2)
         if self._version2:
             self._alloc = sm._alloc
             self._free = sm._free
@@ -195,17 +193,27 @@ class Source:
             self._sm = None
 
     def _call(
-        self, dg: int, dat: int, msg: int, buf, expected_returns=(TWRC_SUCCESS,)
+        self,
+        dg: int,
+        dat: int,
+        msg: int,
+        buf,
+        expected_returns=(constants.TWRC_SUCCESS,),
     ) -> int:
         return self._sm._call(self._id, dg, dat, msg, buf, expected_returns)
 
     def _get_capability(self, cap: int, current: int):
-        twCapability = TW_CAPABILITY(cap, TWON_DONTCARE16, 0)
-        self._call(DG_CONTROL, DAT_CAPABILITY, current, ct.byref(twCapability))
+        twCapability = structs.TW_CAPABILITY(cap, constants.TWON_DONTCARE16, 0)
+        self._call(
+            constants.DG_CONTROL,
+            constants.DAT_CAPABILITY,
+            current,
+            ct.byref(twCapability),
+        )
         try:
             ptr = self._lock(twCapability.hContainer)
             try:
-                if twCapability.ConType == TWON_ONEVALUE:
+                if twCapability.ConType == constants.TWON_ONEVALUE:
                     type_id = int(ct.cast(ptr, ct.POINTER(ct.c_uint16))[0])
                     if not _is_good_type(type_id):
                         msg = f"Capability Code = {cap}, Format Code = {twCapability.ConType}, Item Type = {type_id}"
@@ -213,23 +221,23 @@ class Source:
                     ctype = _mapping.get(type_id)
                     val = ct.cast(ptr + 2, ct.POINTER(ctype))[0]  # type: ignore # needs fixing
                     if type_id in (
-                        TWTY_INT8,
-                        TWTY_UINT8,
-                        TWTY_INT16,
-                        TWTY_UINT16,
-                        TWTY_UINT32,
-                        TWTY_INT32,
+                        constants.TWTY_INT8,
+                        constants.TWTY_UINT8,
+                        constants.TWTY_INT16,
+                        constants.TWTY_UINT16,
+                        constants.TWTY_UINT32,
+                        constants.TWTY_INT32,
                     ):
                         pass
-                    elif type_id == TWTY_BOOL:
+                    elif type_id == constants.TWTY_BOOL:
                         val = bool(val)
-                    elif type_id == TWTY_FIX32:
-                        val = fix2float(val)
-                    elif type_id == TWTY_FRAME:
-                        val = frame2tuple(val)
+                    elif type_id == constants.TWTY_FIX32:
+                        val = structs.fix2float(val)
+                    elif type_id == constants.TWTY_FRAME:
+                        val = structs.frame2tuple(val)
                     return type_id, val
-                elif twCapability.ConType == TWON_RANGE:
-                    rng = ct.cast(ptr, ct.POINTER(TW_RANGE)).contents
+                elif twCapability.ConType == constants.TWON_RANGE:
+                    rng = ct.cast(ptr, ct.POINTER(structs.TW_RANGE)).contents
                     return {
                         "MinValue": rng.MinValue,
                         "MaxValue": rng.MaxValue,
@@ -237,22 +245,26 @@ class Source:
                         "DefaultValue": rng.DefaultValue,
                         "CurrentValue": rng.CurrentValue,
                     }
-                elif twCapability.ConType == TWON_ENUMERATION:
-                    enum = ct.cast(ptr, ct.POINTER(TW_ENUMERATION)).contents
+                elif twCapability.ConType == constants.TWON_ENUMERATION:
+                    enum = ct.cast(ptr, ct.POINTER(structs.TW_ENUMERATION)).contents
                     if not _is_good_type(enum.ItemType):
                         msg = f"Capability Code = {cap}, Format Code = {twCapability.ConType}, Item Type = {enum.ItemType}"
                         raise exceptions.CapabilityFormatNotSupported(msg)
                     ctype = _mapping[enum.ItemType]
-                    item_p = ct.cast(ptr + ct.sizeof(TW_ENUMERATION), ct.POINTER(ctype))  # type: ignore # needs fixing
+                    item_p = ct.cast(
+                        ptr + ct.sizeof(structs.TW_ENUMERATION), ct.POINTER(ctype)
+                    )  # type: ignore # needs fixing
                     values = [el for el in item_p[0 : enum.NumItems]]
                     return enum.ItemType, (enum.CurrentIndex, enum.DefaultIndex, values)
-                elif twCapability.ConType == TWON_ARRAY:
-                    arr = ct.cast(ptr, ct.POINTER(TW_ARRAY)).contents
+                elif twCapability.ConType == constants.TWON_ARRAY:
+                    arr = ct.cast(ptr, ct.POINTER(structs.TW_ARRAY)).contents
                     if not _is_good_type(arr.ItemType):
                         msg = f"Capability Code = {cap}, Format Code = {twCapability.ConType}, Item Type = {arr.ItemType}"
                         raise exceptions.CapabilityFormatNotSupported(msg)
                     ctype = _mapping[arr.ItemType]
-                    item_p = ct.cast(ptr + ct.sizeof(TW_ARRAY), ct.POINTER(ctype))  # type: ignore # needs fixing
+                    item_p = ct.cast(
+                        ptr + ct.sizeof(structs.TW_ARRAY), ct.POINTER(ctype)
+                    )  # type: ignore # needs fixing
                     return arr.ItemType, [el for el in item_p[0 : arr.NumItems]]
                 else:
                     msg = (
@@ -278,7 +290,7 @@ class Source:
          enumerators and arrays are returned as tuples, each containing
              a list which has the actual values
         """
-        return self._get_capability(cap, MSG_GET)
+        return self._get_capability(cap, constants.MSG_GET)
 
     def get_capability_current(self, cap: int):
         """This function is used to return the current value of a capability from the source.
@@ -294,7 +306,7 @@ class Source:
          enumerators and arrays are returned as tuples, each containing
              a list which has the actual values
         """
-        return self._get_capability(cap, MSG_GETCURRENT)
+        return self._get_capability(cap, constants.MSG_GETCURRENT)
 
     def get_capability_default(self, cap: int):
         """This function is used to return the default value of a capability from the source.
@@ -310,7 +322,7 @@ class Source:
          enumerators and arrays are returned as tuples, each containing
              a list which has the actual values
         """
-        return self._get_capability(cap, MSG_GETDEFAULT)
+        return self._get_capability(cap, constants.MSG_GETDEFAULT)
 
     @property
     def name(self) -> str:
@@ -346,24 +358,29 @@ class Source:
             )
         ctype = _mapping[type_id]
         if type_id in (
-            TWTY_INT8,
-            TWTY_INT16,
-            TWTY_INT32,
-            TWTY_UINT8,
-            TWTY_UINT16,
-            TWTY_UINT32,
-            TWTY_BOOL,
+            constants.TWTY_INT8,
+            constants.TWTY_INT16,
+            constants.TWTY_INT32,
+            constants.TWTY_UINT8,
+            constants.TWTY_UINT16,
+            constants.TWTY_UINT32,
+            constants.TWTY_BOOL,
         ):
             cval = ctype(value)  # type: ignore # needs fixing
-        elif type_id in (TWTY_STR32, TWTY_STR64, TWTY_STR128, TWTY_STR255):
+        elif type_id in (
+            constants.TWTY_STR32,
+            constants.TWTY_STR64,
+            constants.TWTY_STR128,
+            constants.TWTY_STR255,
+        ):
             cval = ctype(self._encode(value))  # type: ignore # needs fixing
-        elif type_id == TWTY_FIX32:
-            cval = float2fix(value)  # type: ignore # needs fixing
-        elif type_id == TWTY_FRAME:
-            cval = tuple2frame(value)  # type: ignore # needs fixing
+        elif type_id == constants.TWTY_FIX32:
+            cval = structs.float2fix(value)  # type: ignore # needs fixing
+        elif type_id == constants.TWTY_FRAME:
+            cval = structs.tuple2frame(value)  # type: ignore # needs fixing
         else:
             assert 0, "invalid case"
-        handle = self._alloc(ct.sizeof(TW_ONEVALUE) + ct.sizeof(ctype))  # type: ignore # needs fixing
+        handle = self._alloc(ct.sizeof(structs.TW_ONEVALUE) + ct.sizeof(ctype))  # type: ignore # needs fixing
         try:
             ptr = self._lock(handle)
             try:
@@ -371,17 +388,17 @@ class Source:
                 ct.cast(ptr + 2, ct.POINTER(ctype))[0] = cval  # type: ignore # needs fixing
             finally:
                 self._unlock(handle)
-            capability = TW_CAPABILITY(cap, TWON_ONEVALUE, handle)
+            capability = structs.TW_CAPABILITY(cap, constants.TWON_ONEVALUE, handle)
             rv = self._call(
-                DG_CONTROL,
-                DAT_CAPABILITY,
-                MSG_SET,
+                constants.DG_CONTROL,
+                constants.DAT_CAPABILITY,
+                constants.MSG_SET,
                 ct.byref(capability),
-                [TWRC_CHECKSTATUS],
+                [constants.TWRC_CHECKSTATUS],
             )
         finally:
             self._free(handle)
-        if rv == TWRC_CHECKSTATUS:
+        if rv == constants.TWRC_CHECKSTATUS:
             raise exceptions.CheckStatus
 
     def reset_capability(self, cap: int):
@@ -389,8 +406,13 @@ class Source:
 
         :param cap: Capability Identifier (lowlevel.CAP_* or lowlevel.ICAP_*).
         """
-        capability = TW_CAPABILITY(Cap=cap)
-        self._call(DG_CONTROL, DAT_CAPABILITY, MSG_RESET, ct.byref(capability))
+        capability = structs.TW_CAPABILITY(Cap=cap)
+        self._call(
+            constants.DG_CONTROL,
+            constants.DAT_CAPABILITY,
+            constants.MSG_RESET,
+            ct.byref(capability),
+        )
 
     def set_image_layout(
         self,
@@ -404,20 +426,20 @@ class Source:
         It uses a tuple containing frame coordinates, document
         number, page number, frame number.
         """
-        il = TW_IMAGELAYOUT(
-            Frame=tuple2frame(frame),
+        il = structs.TW_IMAGELAYOUT(
+            Frame=structs.tuple2frame(frame),
             DocumentNumber=document_number,
             PageNumber=page_number,
             FrameNumber=frame_number,
         )
         rv = self._call(
-            DG_IMAGE,
-            DAT_IMAGELAYOUT,
-            MSG_SET,
+            constants.DG_IMAGE,
+            constants.DAT_IMAGELAYOUT,
+            constants.MSG_SET,
             ct.byref(il),
-            (TWRC_SUCCESS, TWRC_CHECKSTATUS),
+            (constants.TWRC_SUCCESS, constants.TWRC_CHECKSTATUS),
         )
-        if rv == TWRC_CHECKSTATUS:
+        if rv == constants.TWRC_CHECKSTATUS:
             raise exceptions.CheckStatus
 
     def get_image_layout(
@@ -430,9 +452,19 @@ class Source:
 
         Valid states 4 through 6
         """
-        il = TW_IMAGELAYOUT()
-        self._call(DG_IMAGE, DAT_IMAGELAYOUT, MSG_GET, ct.byref(il))
-        return frame2tuple(il.Frame), il.DocumentNumber, il.PageNumber, il.FrameNumber
+        il = structs.TW_IMAGELAYOUT()
+        self._call(
+            constants.DG_IMAGE,
+            constants.DAT_IMAGELAYOUT,
+            constants.MSG_GET,
+            ct.byref(il),
+        )
+        return (
+            structs.frame2tuple(il.Frame),
+            il.DocumentNumber,
+            il.PageNumber,
+            il.FrameNumber,
+        )
 
     def get_image_layout_default(
         self
@@ -444,14 +476,29 @@ class Source:
 
         Valid states 4 through 6
         """
-        il = TW_IMAGELAYOUT()
-        self._call(DG_IMAGE, DAT_IMAGELAYOUT, MSG_GETDEFAULT, ct.byref(il))
-        return frame2tuple(il.Frame), il.DocumentNumber, il.PageNumber, il.FrameNumber
+        il = structs.TW_IMAGELAYOUT()
+        self._call(
+            constants.DG_IMAGE,
+            constants.DAT_IMAGELAYOUT,
+            constants.MSG_GETDEFAULT,
+            ct.byref(il),
+        )
+        return (
+            structs.frame2tuple(il.Frame),
+            il.DocumentNumber,
+            il.PageNumber,
+            il.FrameNumber,
+        )
 
     def reset_image_layout(self):
         """This function is used to reset Image Layout to its default settings"""
-        il = TW_IMAGELAYOUT()
-        self._call(DG_IMAGE, DAT_IMAGELAYOUT, MSG_RESET, ct.byref(il))
+        il = structs.TW_IMAGELAYOUT()
+        self._call(
+            constants.DG_IMAGE,
+            constants.DAT_IMAGELAYOUT,
+            constants.MSG_RESET,
+            ct.byref(il),
+        )
 
     def _enable(self, show_ui: bool, modal_ui: bool, hparent):
         """This function is used to ask the source to begin aquistion.
@@ -459,15 +506,25 @@ class Source:
             show_ui - bool
             modal_ui - bool
         """
-        ui = TW_USERINTERFACE(ShowUI=show_ui, ModalUI=modal_ui, hParent=hparent)
+        ui = structs.TW_USERINTERFACE(ShowUI=show_ui, ModalUI=modal_ui, hParent=hparent)
         logger.info("starting scan")
-        self._call(DG_CONTROL, DAT_USERINTERFACE, MSG_ENABLEDS, ct.byref(ui))
+        self._call(
+            constants.DG_CONTROL,
+            constants.DAT_USERINTERFACE,
+            constants.MSG_ENABLEDS,
+            ct.byref(ui),
+        )
         self._state = "enabled"
 
     def _disable(self):
         """This function is used to ask the source to hide the user interface."""
-        ui = TW_USERINTERFACE()
-        self._call(DG_CONTROL, DAT_USERINTERFACE, MSG_DISABLEDS, ct.byref(ui))
+        ui = structs.TW_USERINTERFACE()
+        self._call(
+            constants.DG_CONTROL,
+            constants.DAT_USERINTERFACE,
+            constants.MSG_DISABLEDS,
+            ct.byref(ui),
+        )
         self._state = "open"
 
     def _process_event(self, msg_ref) -> tuple[int, int]:
@@ -477,16 +534,16 @@ class Source:
         This method is called in the event loop to pass on those
         events.
         """
-        event = TW_EVENT(ct.cast(msg_ref, ct.c_void_p), 0)
+        event = structs.TW_EVENT(ct.cast(msg_ref, ct.c_void_p), 0)
         rv = self._call(
-            DG_CONTROL,
-            DAT_EVENT,
-            MSG_PROCESSEVENT,
+            constants.DG_CONTROL,
+            constants.DAT_EVENT,
+            constants.MSG_PROCESSEVENT,
             ct.byref(event),
-            (TWRC_DSEVENT, TWRC_NOTDSEVENT),
+            (constants.TWRC_DSEVENT, constants.TWRC_NOTDSEVENT),
         )
         logger.debug("handling event result %d", rv)
-        if event.TWMessage == MSG_XFERREADY:
+        if event.TWMessage == constants.MSG_XFERREADY:
             logger.info("transfer is ready")
             self._state = "ready"
         return rv, event.TWMessage
@@ -494,18 +551,18 @@ class Source:
     def _modal_loop(self, callback: typing.Callable[[int], None] | None) -> None:
         logger.info("entering modal loop")
         done = False
-        msg = MSG()
+        msg = structs.MSG()
         while not done:
             if not windows.GetMessage(ct.byref(msg), 0, 0, 0):  # type: ignore # needs fixing
                 break
             rc, event = self._process_event(ct.byref(msg))
-            if rc not in (TWRC_NOTDSEVENT, TWRC_DSEVENT):
+            if rc not in (constants.TWRC_NOTDSEVENT, constants.TWRC_DSEVENT):
                 logger.info("got unusual process event result %d", rc)
             if callback:
                 callback(event)
-            if event in (MSG_XFERREADY, MSG_CLOSEDSREQ):
+            if event in (constants.MSG_XFERREADY, constants.MSG_CLOSEDSREQ):
                 done = True
-            if rc == TWRC_NOTDSEVENT:
+            if rc == constants.TWRC_NOTDSEVENT:
                 windows.TranslateMessage(ct.byref(msg))  # type: ignore # needs fixing
                 windows.DispatchMessage(ct.byref(msg))  # type: ignore # needs fixing
         logger.info("exited modal loop")
@@ -520,7 +577,7 @@ class Source:
         try:
 
             def callback_lolevel(event: int):
-                if event == MSG_XFERREADY:
+                if event == constants.MSG_XFERREADY:
                     logger.info("got MSG_XFERREADY message")
                     more = 1
                     while more:
@@ -542,15 +599,25 @@ class Source:
 
         Valid states: 4, 5, 6
         """
-        sfx = TW_SETUPFILEXFER()
-        self._call(DG_CONTROL, DAT_SETUPFILEXFER, MSG_GET, ct.byref(sfx))
+        sfx = structs.TW_SETUPFILEXFER()
+        self._call(
+            constants.DG_CONTROL,
+            constants.DAT_SETUPFILEXFER,
+            constants.MSG_GET,
+            ct.byref(sfx),
+        )
         return self._decode(sfx.FileName), sfx.Format
 
     @file_xfer_params.setter
     def file_xfer_params(self, params: tuple[str, int]) -> None:
         (path, fmt) = params
-        sfx = TW_SETUPFILEXFER(self._encode(path), fmt, 0)
-        self._call(DG_CONTROL, DAT_SETUPFILEXFER, MSG_SET, ct.byref(sfx))
+        sfx = structs.TW_SETUPFILEXFER(self._encode(path), fmt, 0)
+        self._call(
+            constants.DG_CONTROL,
+            constants.DAT_SETUPFILEXFER,
+            constants.MSG_SET,
+            ct.byref(sfx),
+        )
 
     @property
     def image_info(self) -> dict:
@@ -563,11 +630,13 @@ class Source:
 
         Valid states: 6, 7
         """
-        ii = TW_IMAGEINFO()
-        self._call(DG_IMAGE, DAT_IMAGEINFO, MSG_GET, ct.byref(ii))
+        ii = structs.TW_IMAGEINFO()
+        self._call(
+            constants.DG_IMAGE, constants.DAT_IMAGEINFO, constants.MSG_GET, ct.byref(ii)
+        )
         return {
-            "XResolution": fix2float(ii.XResolution),
-            "YResolution": fix2float(ii.YResolution),
+            "XResolution": structs.fix2float(ii.XResolution),
+            "YResolution": structs.fix2float(ii.YResolution),
             "ImageWidth": ii.ImageWidth,
             "ImageLength": ii.ImageLength,
             "SamplesPerPixel": ii.SamplesPerPixel,
@@ -581,35 +650,53 @@ class Source:
     def _get_native_image(self) -> tuple[int, ct.c_void_p]:
         hbitmap = ct.c_void_p()
         rv = self._call(
-            DG_IMAGE,
-            DAT_IMAGENATIVEXFER,
-            MSG_GET,
+            constants.DG_IMAGE,
+            constants.DAT_IMAGENATIVEXFER,
+            constants.MSG_GET,
             ct.byref(hbitmap),
-            (TWRC_XFERDONE, TWRC_CANCEL),
+            (constants.TWRC_XFERDONE, constants.TWRC_CANCEL),
         )
         return rv, hbitmap
 
     def _get_file_image(self) -> int:
         return self._call(
-            DG_IMAGE, DAT_IMAGEFILEXFER, MSG_GET, None, (TWRC_XFERDONE, TWRC_CANCEL)
+            constants.DG_IMAGE,
+            constants.DAT_IMAGEFILEXFER,
+            constants.MSG_GET,
+            None,
+            (constants.TWRC_XFERDONE, constants.TWRC_CANCEL),
         )
 
     def _get_file_audio(self) -> int:
         return self._call(
-            DG_AUDIO, DAT_AUDIOFILEXFER, MSG_GET, None, (TWRC_XFERDONE, TWRC_CANCEL)
+            constants.DG_AUDIO,
+            constants.DAT_AUDIOFILEXFER,
+            constants.MSG_GET,
+            None,
+            (constants.TWRC_XFERDONE, constants.TWRC_CANCEL),
         )
 
     def _end_xfer(self) -> int:
-        px = TW_PENDINGXFERS()
-        self._call(DG_CONTROL, DAT_PENDINGXFERS, MSG_ENDXFER, ct.byref(px))
+        px = structs.TW_PENDINGXFERS()
+        self._call(
+            constants.DG_CONTROL,
+            constants.DAT_PENDINGXFERS,
+            constants.MSG_ENDXFER,
+            ct.byref(px),
+        )
         if px.Count == 0:
             self._state = "enabled"
         return px.Count
 
     def _end_all_xfers(self) -> None:
         """Cancel all outstanding transfers on the data source."""
-        px = TW_PENDINGXFERS()
-        self._call(DG_CONTROL, DAT_PENDINGXFERS, MSG_RESET, ct.byref(px))
+        px = structs.TW_PENDINGXFERS()
+        self._call(
+            constants.DG_CONTROL,
+            constants.DAT_PENDINGXFERS,
+            constants.MSG_RESET,
+            ct.byref(px),
+        )
         self._state = "enabled"
 
     def request_acquire(self, show_ui: bool, modal_ui: bool) -> None:
@@ -657,7 +744,7 @@ class Source:
         """
         rv, handle = self._get_native_image()
         more = self._end_xfer()
-        if rv == TWRC_CANCEL:
+        if rv == constants.TWRC_CANCEL:
             raise exceptions.DSTransferCancelled
         return handle.value, more
 
@@ -678,7 +765,7 @@ class Source:
         """
         rv = self._get_file_image()
         more = self._end_xfer()
-        if rv == TWRC_CANCEL:
+        if rv == constants.TWRC_CANCEL:
             raise exceptions.DSTransferCancelled
         return more
 
@@ -699,8 +786,8 @@ class Source:
         :keyword show_ui: If True source's UI will be presented to user
         :keyword modal: If True source's UI will be modal
         """
-        _, (_, _, mechs) = self.get_capability(ICAP_XFERMECH)
-        if TWSX_FILE not in mechs:
+        _, (_, _, mechs) = self.get_capability(constants.ICAP_XFERMECH)
+        if constants.TWSX_FILE not in mechs:
             raise Exception("File transfer is not supported")
 
         def callback():
@@ -715,10 +802,10 @@ class Source:
             else:
                 bmppath = filepath
 
-            self.file_xfer_params = bmppath, TWFF_BMP
+            self.file_xfer_params = bmppath, constants.TWFF_BMP
             rv = self._get_file_image()
             more = self._end_xfer()
-            if rv == TWRC_CANCEL:
+            if rv == constants.TWRC_CANCEL:
                 raise exceptions.DSTransferCancelled
             if ext != ".bmp":
                 try:
@@ -730,7 +817,9 @@ class Source:
             after(more)
             return more
 
-        self.set_capability(ICAP_XFERMECH, TWTY_UINT16, TWSX_FILE)
+        self.set_capability(
+            constants.ICAP_XFERMECH, constants.TWTY_UINT16, constants.TWSX_FILE
+        )
         self._acquire(callback, show_ui, modal)
 
     def acquire_natively(
@@ -755,12 +844,14 @@ class Source:
             before(self.image_info)
             rv, handle = self._get_native_image()
             more = self._end_xfer()
-            if rv == TWRC_CANCEL:
+            if rv == constants.TWRC_CANCEL:
                 raise exceptions.DSTransferCancelled
             after(_Image(handle), more)  # type: ignore # needs fixing
             return more
 
-        self.set_capability(ICAP_XFERMECH, TWTY_UINT16, TWSX_NATIVE)
+        self.set_capability(
+            constants.ICAP_XFERMECH, constants.TWTY_UINT16, constants.TWSX_NATIVE
+        )
         self._acquire(callback, show_ui, modal)
 
     def is_twain2(self) -> bool:
@@ -948,13 +1039,13 @@ class SourceManager:
         parent_window=None,
         MajorNum: int = 1,
         MinorNum: int = 0,
-        Language: int = TWLG_USA,
-        Country: int = TWCY_USA,
+        Language: int = constants.TWLG_USA,
+        Country: int = constants.TWCY_USA,
         Info: str = "",
         ProductName: str = "TWAIN Python Interface",
         ProtocolMajor: int | None = None,
         ProtocolMinor: int | None = None,
-        SupportedGroups: int = DG_IMAGE | DG_CONTROL,
+        SupportedGroups: int = constants.DG_IMAGE | constants.DG_CONTROL,
         Manufacturer: str = "pytwain",
         ProductFamily: str = "TWAIN Python Interface",
         dsm_name: str | None = None,
@@ -1007,16 +1098,16 @@ class SourceManager:
             raise exceptions.SMGetProcAddressFailed(e)
         self._entry.restype = ct.c_uint16
         self._entry.argtypes = (
-            ct.POINTER(TW_IDENTITY),
-            ct.POINTER(TW_IDENTITY),
+            ct.POINTER(structs.TW_IDENTITY),
+            ct.POINTER(structs.TW_IDENTITY),
             ct.c_uint32,
             ct.c_uint16,
             ct.c_uint16,
             ct.c_void_p,
         )
 
-        self._app_id = TW_IDENTITY(
-            Version=TW_VERSION(
+        self._app_id = structs.TW_IDENTITY(
+            Version=structs.TW_VERSION(
                 MajorNum=MajorNum,
                 MinorNum=MinorNum,
                 Language=Language,
@@ -1025,26 +1116,30 @@ class SourceManager:
             ),
             ProtocolMajor=protocol_major,
             ProtocolMinor=0,
-            SupportedGroups=SupportedGroups | DF_APP2,
+            SupportedGroups=SupportedGroups | constants.DF_APP2,
             Manufacturer=Manufacturer.encode("utf8"),
             ProductFamily=ProductFamily.encode("utf8"),
             ProductName=ProductName.encode("utf8"),
         )
         self._call(
-            None, DG_CONTROL, DAT_PARENT, MSG_OPENDSM, ct.byref(ct.c_void_p(self._hwnd))
+            None,
+            constants.DG_CONTROL,
+            constants.DAT_PARENT,
+            constants.MSG_OPENDSM,
+            ct.byref(ct.c_void_p(self._hwnd)),
         )
-        self._version2 = bool(self._app_id.SupportedGroups & DF_DSM2)
+        self._version2 = bool(self._app_id.SupportedGroups & constants.DF_DSM2)
         if self._version2:
-            entrypoint = TW_ENTRYPOINT(Size=ct.sizeof(TW_ENTRYPOINT))
+            entrypoint = structs.TW_ENTRYPOINT(Size=ct.sizeof(structs.TW_ENTRYPOINT))
             rv = self._entry(
                 self._app_id,
                 None,
-                DG_CONTROL,
-                DAT_ENTRYPOINT,
-                MSG_GET,
+                constants.DG_CONTROL,
+                constants.DAT_ENTRYPOINT,
+                constants.MSG_GET,
                 ct.byref(entrypoint),
             )
-            if rv != TWRC_SUCCESS:
+            if rv != constants.TWRC_SUCCESS:
                 raise exceptions.SMOpenFailed(
                     "[%s], return code %d from DG_CONTROL DAT_ENTRYPOINT MSG_GET"
                     % (dsm_name, rv)
@@ -1079,9 +1174,9 @@ class SourceManager:
     def _close_dsm(self) -> None:
         self._call(
             None,
-            DG_CONTROL,
-            DAT_PARENT,
-            MSG_CLOSEDSM,
+            constants.DG_CONTROL,
+            constants.DAT_PARENT,
+            constants.MSG_CLOSEDSM,
             ct.byref(ct.c_void_p(self._hwnd)),
         )
 
@@ -1105,14 +1200,19 @@ class SourceManager:
         expected_returns: tuple[int, ...] = (),
     ) -> int:
         rv = self._entry(self._app_id, dest_id, dg, dat, msg, buf)
-        if rv == TWRC_SUCCESS or rv in expected_returns:
+        if rv == constants.TWRC_SUCCESS or rv in expected_returns:
             return rv
-        elif rv == TWRC_FAILURE:
-            status = TW_STATUS()
+        elif rv == constants.TWRC_FAILURE:
+            status = structs.TW_STATUS()
             rv = self._entry(
-                self._app_id, dest_id, DG_CONTROL, DAT_STATUS, MSG_GET, ct.byref(status)
+                self._app_id,
+                dest_id,
+                constants.DG_CONTROL,
+                constants.DAT_STATUS,
+                constants.MSG_GET,
+                ct.byref(status),
             )
-            if rv != TWRC_SUCCESS:
+            if rv != constants.TWRC_SUCCESS:
                 logger.warning(
                     f"Getting additional error information returned non success code: {rv}"
                 )
@@ -1125,34 +1225,46 @@ class SourceManager:
         else:
             raise RuntimeError("Unexpected result: %d" % rv)
 
-    def _user_select(self) -> TW_IDENTITY | None:
+    def _user_select(self) -> structs.TW_IDENTITY | None:
         logger.info("starting source selection dialog")
-        ds_id = TW_IDENTITY()
+        ds_id = structs.TW_IDENTITY()
         rv = self._call(
             None,
-            DG_CONTROL,
-            DAT_IDENTITY,
-            MSG_USERSELECT,
+            constants.DG_CONTROL,
+            constants.DAT_IDENTITY,
+            constants.MSG_USERSELECT,
             ct.byref(ds_id),
-            expected_returns=(TWRC_SUCCESS, TWRC_CANCEL),
+            expected_returns=(constants.TWRC_SUCCESS, constants.TWRC_CANCEL),
         )
-        if rv == TWRC_SUCCESS:
+        if rv == constants.TWRC_SUCCESS:
             logger.info("user selected source with id %s", ds_id.Id)
             return ds_id
-        elif rv == TWRC_CANCEL:
+        elif rv == constants.TWRC_CANCEL:
             logger.info("user cancelled selection")
             return None
         else:
             # This is unexpected since _call should only return values from expected_returns list
             raise RuntimeError(f"Got unexpected return value {rv} from _call method")
 
-    def _open_ds(self, ds_id: TW_IDENTITY) -> None:
+    def _open_ds(self, ds_id: structs.TW_IDENTITY) -> None:
         logger.info("opening data source with id %s", ds_id.Id)
-        self._call(None, DG_CONTROL, DAT_IDENTITY, MSG_OPENDS, ct.byref(ds_id))
+        self._call(
+            None,
+            constants.DG_CONTROL,
+            constants.DAT_IDENTITY,
+            constants.MSG_OPENDS,
+            ct.byref(ds_id),
+        )
 
-    def _close_ds(self, ds_id: TW_IDENTITY) -> None:
+    def _close_ds(self, ds_id: structs.TW_IDENTITY) -> None:
         logger.info("closing data source with id %s", ds_id.Id)
-        self._call(None, DG_CONTROL, DAT_IDENTITY, MSG_CLOSEDS, ct.byref(ds_id))
+        self._call(
+            None,
+            constants.DG_CONTROL,
+            constants.DAT_IDENTITY,
+            constants.MSG_CLOSEDS,
+            ct.byref(ds_id),
+        )
 
     def open_source(self, product_name: str | None = None) -> Source | None:
         """Open a TWAIN Source.
@@ -1168,7 +1280,7 @@ class SourceManager:
                                source selection
         """
         if product_name:
-            ds_id = TW_IDENTITY(ProductName=self._encode(product_name))
+            ds_id = structs.TW_IDENTITY(ProductName=self._encode(product_name))
         else:
             selected_ds_id = self._user_select()
             if not selected_ds_id:
@@ -1192,29 +1304,29 @@ class SourceManager:
     def source_list(self) -> list[str]:
         """Returns a list containing the names of available sources"""
         names: typing.List[str] = []
-        ds_id = TW_IDENTITY()
+        ds_id = structs.TW_IDENTITY()
         try:
             rv = self._call(
                 None,
-                DG_CONTROL,
-                DAT_IDENTITY,
-                MSG_GETFIRST,
+                constants.DG_CONTROL,
+                constants.DAT_IDENTITY,
+                constants.MSG_GETFIRST,
                 ct.byref(ds_id),
-                (TWRC_SUCCESS, TWRC_ENDOFLIST),
+                (constants.TWRC_SUCCESS, constants.TWRC_ENDOFLIST),
             )
         except exceptions.NoDataSourceError:
             # there are no data sources
             return names
 
-        while rv != TWRC_ENDOFLIST:
+        while rv != constants.TWRC_ENDOFLIST:
             names.append(self._decode(ds_id.ProductName))
             rv = self._call(
                 None,
-                DG_CONTROL,
-                DAT_IDENTITY,
-                MSG_GETNEXT,
+                constants.DG_CONTROL,
+                constants.DAT_IDENTITY,
+                constants.MSG_GETNEXT,
                 ct.byref(ds_id),
-                (TWRC_SUCCESS, TWRC_ENDOFLIST),
+                (constants.TWRC_SUCCESS, constants.TWRC_ENDOFLIST),
             )
         return names
 
@@ -1293,7 +1405,11 @@ def acquire(
 
     """
     if pixel_type:
-        pixel_type_map = {"bw": TWPT_BW, "gray": TWPT_GRAY, "color": TWPT_RGB}
+        pixel_type_map = {
+            "bw": constants.TWPT_BW,
+            "gray": constants.TWPT_GRAY,
+            "color": constants.TWPT_RGB,
+        }
         twain_pixel_type = pixel_type_map[pixel_type]
     if not parent_window:
         from tkinter import Tk
@@ -1306,13 +1422,17 @@ def acquire(
             return None
         try:
             if pixel_type:
-                sd.set_capability(ICAP_PIXELTYPE, TWTY_UINT16, twain_pixel_type)
-            sd.set_capability(ICAP_UNITS, TWTY_UINT16, TWUN_INCHES)
+                sd.set_capability(
+                    constants.ICAP_PIXELTYPE, constants.TWTY_UINT16, twain_pixel_type
+                )
+            sd.set_capability(
+                constants.ICAP_UNITS, constants.TWTY_UINT16, constants.TWUN_INCHES
+            )
             if bpp:
-                sd.set_capability(ICAP_BITDEPTH, TWTY_UINT16, bpp)
+                sd.set_capability(constants.ICAP_BITDEPTH, constants.TWTY_UINT16, bpp)
             if dpi:
-                sd.set_capability(ICAP_XRESOLUTION, TWTY_FIX32, dpi)
-                sd.set_capability(ICAP_YRESOLUTION, TWTY_FIX32, dpi)
+                sd.set_capability(constants.ICAP_XRESOLUTION, constants.TWTY_FIX32, dpi)
+                sd.set_capability(constants.ICAP_YRESOLUTION, constants.TWTY_FIX32, dpi)
             if frame:
                 try:
                     sd.set_image_layout(frame)
