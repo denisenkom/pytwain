@@ -1,5 +1,4 @@
 import twain
-import traceback, sys
 import os, os.path
 
 XferByFile = "File"

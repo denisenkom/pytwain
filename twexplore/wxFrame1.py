@@ -3,13 +3,12 @@
 import wx
 
 import twain
-import string, traceback, sys
+import traceback
 
 import ChangeCap
 import dlgAcquire
 import dlgTransfer
 import dlgIdentity
-import twexplore
 
 
 def create(parent):

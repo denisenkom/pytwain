@@ -1498,5 +1498,5 @@ def acquire(
 
 
 # import all constants for backward compatibility
-from .lowlevel.constants import *
-from .windows import *
+from .lowlevel.constants import * # noqa
+from .windows import *  # noqa
