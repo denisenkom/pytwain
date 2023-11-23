@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import ctypes as ct
 import tempfile
 import os
 import warnings
-from . import utils
+import sys
 from .utils import convert_dib_to_bmp
 
 
@@ -26,7 +28,7 @@ def _win_check(result, func, _):
     return result
 
 
-if utils.is_windows():
+if sys.platform == "win32":
     GlobalLock = ct.windll.kernel32.GlobalLock
     GlobalLock.argtypes = [ct.c_void_p]
     GlobalLock.restype = ct.c_void_p
@@ -53,7 +55,7 @@ if utils.is_windows():
 GMEM_ZEROINIT = 0x0040
 
 
-def dib_to_bm_file(handle, path=None):
+def dib_to_bm_file(handle, path: str | None = None) -> bytes | None:
     """Convert a DIB (Device Independent Bitmap) to a windows
     bitmap file format. The BitMap file is either returned as
     a string, or written to a file with the name given in the
@@ -78,7 +80,7 @@ def dib_to_bm_file(handle, path=None):
     return None
 
 
-def dib_to_xbm_file(handle, path=None):
+def dib_to_xbm_file(handle, path: str | None = None):
     """Convert a DIB (Device Independent Bitmap) to an X-Windows
     bitmap file (XBM format). The XBM file is either returned as
     a string, or written to a file with the name given in the
@@ -97,14 +99,15 @@ def dib_to_xbm_file(handle, path=None):
     os.close(handle)
     dib_to_bm_file(handle, bmppath)
     try:
-        import Image
+        # Needs fixing
+        import Image  # type: ignore
     except ImportError:
         from PIL import Image
     Image.open(bmppath).save(path, 'xbm')
     os.remove(bmppath)
 
 
-def global_handle_get_bytes(handle, offset, count):
+def global_handle_get_bytes(handle, offset: int, count: int) -> bytes:
     """Read a specified number of bytes from a global handle.
 
     Parameters:
@@ -120,12 +123,12 @@ def global_handle_get_bytes(handle, offset, count):
     ptr = GlobalLock(handle)
     try:
         char_ptr = ct.cast(ptr, ct.POINTER(ct.c_char))
-        return char_ptr[min(offset, size) : min(offset + count, size)]
+        return char_ptr[min(offset, size): min(offset + count, size)] # type: ignore # needs fixing
     finally:
         GlobalUnlock(handle)
 
 
-def global_handle_put_bytes(handle, offset, count, data):
+def global_handle_put_bytes(handle, offset: int, count: int, data: bytes):
     """Write a specified number of bytes to a global handle.
 
     Parameters:
@@ -153,7 +156,7 @@ def global_handle_put_bytes(handle, offset, count, data):
         GlobalUnlock(handle)
 
 
-def global_handle_allocate(flags, size):
+def global_handle_allocate(flags: int, size: int):
     """Allocate a specified number of bytes via a global handle.
 
     Parameters:

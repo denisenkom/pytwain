@@ -20,7 +20,7 @@ class BITMAPINFOHEADER(ct.Structure):
                 ('biClrImportant', ct.c_uint32)]
 
 
-def is_windows():
+def is_windows() -> bool:
     """
     Returns true if running on Windows
     """

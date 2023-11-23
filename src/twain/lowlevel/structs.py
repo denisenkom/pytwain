@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import ctypes as ct
-from .. import utils
+import sys
 
 
 class TW_CAPABILITY(ct.Structure):
@@ -144,7 +144,7 @@ class TW_SETUPFILEXFER(ct.Structure):
                 ('VRefNum', ct.c_int16)]
 
 
-if utils.is_windows():
+if sys.platform == "win32":
     FUNCTYPE = ct.WINFUNCTYPE
 else:
     FUNCTYPE = ct.CFUNCTYPE
