@@ -1456,3 +1456,8 @@ def acquire(
     finally:
         sm.close()
     return res[0]
+
+
+# import all constants for backward compatibility
+from .lowlevel.constants import *
+from .windows import *
