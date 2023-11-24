@@ -524,7 +524,7 @@ class Source:
         )
 
     def _enable(self, show_ui: bool, modal_ui: bool, hparent):
-        """This function is used to ask the source to begin aquistion.
+        """This function is used to ask the source to begin acquisition.
         Parameters:
             show_ui - bool
             modal_ui - bool
@@ -552,14 +552,14 @@ class Source:
         )
         self._state = "open"
 
-    def _process_event(self, msg_ref) -> tuple[int, int]:
+    def _process_event(self, msg: structs.MSG) -> tuple[int, int]:
         """The TWAIN interface requires that the windows events
         are available to both the application and the lowlevel
         source (which operates in the same process).
         This method is called in the event loop to pass on those
         events.
         """
-        event = structs.TW_EVENT(ct.cast(msg_ref, ct.c_void_p), 0)
+        event = structs.TW_EVENT(ct.cast(ct.byref(msg), ct.c_void_p), 0)
         logger.info("Calling DAT_EVENT/MSG_PROCESSEVENT")
         rv = self._call(
             constants.DG_CONTROL,
@@ -574,47 +574,55 @@ class Source:
             self._state = "ready"
         return rv, event.TWMessage
 
-    def _modal_loop(self, callback: collections.abc.Callable[[int], None] | None) -> None:
+    def _modal_loop(self, event_callback: collections.abc.Callable[[int], None] | None) -> None:
         logger.info("entering modal loop")
         done = False
         msg = structs.MSG()
         while not done:
+            # Get message fron Windows message queue
             if not windows.GetMessage(ct.byref(msg), 0, 0, 0):  # type: ignore # needs fixing
+                # Got WM_QUIT message indicating that application is exiting
                 break
-            rc, event = self._process_event(ct.byref(msg))
+            # send windows event to data source
+            rc, event = self._process_event(msg)
             if rc not in (constants.TWRC_NOTDSEVENT, constants.TWRC_DSEVENT):
-                logger.info("got unusual process event result %d", rc)
-            if callback:
-                callback(event)
+                logger.error("got unexpected process event result %d", rc)
+            if event_callback:
+                event_callback(event)
             if event in (constants.MSG_XFERREADY, constants.MSG_CLOSEDSREQ):
                 done = True
             if rc == constants.TWRC_NOTDSEVENT:
+                # this event is not for data source, so process it via normal
+                # Windows mechanisms
                 windows.TranslateMessage(ct.byref(msg))  # type: ignore # needs fixing
                 windows.DispatchMessage(ct.byref(msg))  # type: ignore # needs fixing
         logger.info("exited modal loop")
 
     def _acquire(
         self,
-        callback: collections.abc.Callable[[], int],
+        xfer_ready_callback: collections.abc.Callable[[], int],
         show_ui: bool = True,
         modal: bool = False,
     ) -> None:
-        self._enable(show_ui, modal, self._sm._hwnd)
+        # enable data source
+        self._enable(show_ui=show_ui, modal_ui=modal, hparent=self._sm._hwnd)
         try:
 
-            def callback_lolevel(event: int):
+            def event_callback_lolevel(event: int) -> None:
                 if event == constants.MSG_XFERREADY:
                     logger.info("got MSG_XFERREADY message")
                     more = 1
                     while more:
                         try:
-                            more = callback()
+                            more = xfer_ready_callback()
                         except exceptions.CancelAll:
                             self._end_all_xfers()
                             break
 
-            self._modal_loop(callback_lolevel)
+            # Enter modal loop
+            self._modal_loop(event_callback_lolevel)
         finally:
+            # disable data source UI
             self._disable()
 
     @property
@@ -880,18 +888,20 @@ class Source:
         show_ui: bool = True,
         modal: bool = False,
     ) -> None:
-        """Acquires one or more images in memory. Call returns when acquisition complete
+        """Acquires one or more images via memory. Call returns when acquisition complete.
 
-        :param after: Callback called after each acquired file, it receives an image object and
-                     number of images remaining. It can throw CancelAll to cancel remaining
-                     acquisition
+        This function will run its own event loop while it is executing.
+
+        :keyword after: Callback called after each acquired file, it receives an image object and
+                        number of images remaining. It can throw CancelAll to cancel remaining
+                        acquisition
         :keyword before: Callback called before each acquired file. It can throw CancelAll
-                      to cancel acquisition
+                         to cancel acquisition
         :keyword show_ui: If True source's UI will be presented to user
         :keyword modal:   If True source's UI will be modal
         """
 
-        def callback() -> int:
+        def xfer_ready_callback() -> int:
             before(self.image_info)
             handle, more = self.xfer_image_natively()
             after(_Image(handle), more)  # type: ignore # needs fixing
@@ -900,13 +910,17 @@ class Source:
         self.set_capability(
             constants.ICAP_XFERMECH, constants.TWTY_UINT16, constants.TWSX_NATIVE
         )
-        self._acquire(callback, show_ui, modal)
+        self._acquire(xfer_ready_callback=xfer_ready_callback, show_ui=show_ui, modal=modal)
 
     def is_twain2(self) -> bool:
         return self._version2
 
     # backward compatible aliases
     def destroy(self) -> None:
+        warnings.warn(
+            "destroy is deprecated, use close instead",
+            DeprecationWarning,
+        )
         self.close()
 
     def GetCapabilityCurrent(self, cap):
