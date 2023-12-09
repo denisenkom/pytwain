@@ -1102,7 +1102,7 @@ def version() -> str:
     """Retrieve the version of the module"""
     # This version should be updated before release.
     # Ideally it needs to be automated with build process.
-    return '2.2.1'
+    return '2.2.2'
 
 
 def acquire(path,
