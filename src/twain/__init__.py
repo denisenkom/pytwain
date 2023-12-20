@@ -125,15 +125,16 @@ if sys.platform == "win32":
     _twain1_unlock = windows.GlobalUnlock
 
     class _Image(_IImage):
-        def __init__(self, handle):
+        def __init__(self, handle, free: collections.abc.Callable[[typing.Any], None]):
             self._handle = handle
+            self._free = free
 
         def __del__(self):
             self.close()
 
         def close(self):
             """Releases memory of image"""
-            self._free(self._handle)  # type: ignore # needs fixing
+            self._free(self._handle)
             self._handle = None
 
         def save(self, filepath: str):
@@ -904,7 +905,7 @@ class Source:
         def xfer_ready_callback() -> int:
             before(self.image_info)
             handle, more = self.xfer_image_natively()
-            after(_Image(handle), more)  # type: ignore # needs fixing
+            after(_Image(handle=handle, free=self._free), more)  # type: ignore # needs fixing
             return more
 
         self.set_capability(

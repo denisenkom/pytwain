@@ -68,3 +68,17 @@ def test_scan(root_window):
                 )
                 twain.global_handle_free(handle)
                 index += 1
+
+
+def test_acquire_natively(root_window):
+    """
+    Testing acquire_natively method
+    """
+    logger.info("creating source manager")
+    with twain.SourceManager(root_window) as sm:
+        logger.info("opening source")
+        with sm.open_source() as ss:  # this posts a modeless dialog...
+            logger.info("calling acquire_natively")
+            ss.acquire_natively(
+                after=lambda img, no: img.close()
+            )
