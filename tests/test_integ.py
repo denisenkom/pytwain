@@ -75,10 +75,15 @@ def test_acquire_natively(root_window):
     Testing acquire_natively method
     """
     logger.info("creating source manager")
+
+    def save_and_close(img):
+        img.save("test.bmp")
+        img.close()
+
     with twain.SourceManager(root_window) as sm:
         logger.info("opening source")
         with sm.open_source() as ss:  # this posts a modeless dialog...
             logger.info("calling acquire_natively")
             ss.acquire_natively(
-                after=lambda img, no: img.close()
+                after=lambda img, no: save_and_close(img)
             )

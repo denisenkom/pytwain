@@ -125,9 +125,17 @@ if sys.platform == "win32":
     _twain1_unlock = windows.GlobalUnlock
 
     class _Image(_IImage):
-        def __init__(self, handle, free: collections.abc.Callable[[typing.Any], None]):
+        def __init__(
+                self,
+                handle,
+                free: collections.abc.Callable[[typing.Any], None],
+                lock: collections.abc.Callable[[typing.Any], ct.c_void_p],
+                unlock: collections.abc.Callable[[typing.Any], None]
+        ):
             self._handle = handle
             self._free = free
+            self._lock = lock
+            self._unlock = unlock
 
         def __del__(self):
             self.close()
@@ -139,7 +147,18 @@ if sys.platform == "win32":
 
         def save(self, filepath: str):
             """Saves in-memory image to BMP file"""
-            windows.dib_write(self._handle, filepath, self._lock, self._unlock)  # type: ignore # needs fixing
+            # calling GlobalSize may not work on TWAIN2 sources as they may use memory allocator that is not compatible
+            # with GlobalSize
+            # in this case would need to change code to determine image size from image contents
+            size = windows.GlobalSize(self._handle)
+            ptr = self._lock(self._handle)
+            try:
+                dib_bytes = (ct.c_char * size).from_address(ptr)
+                bmp = windows.convert_dib_to_bmp(dib_bytes)
+                with open(filepath, "wb") as f:
+                    f.write(bmp)
+            finally:
+                self._unlock(self._handle)
 else:
     # Mac
     def _twain1_alloc(size: int) -> ct.c_void_p:
@@ -905,7 +924,7 @@ class Source:
         def xfer_ready_callback() -> int:
             before(self.image_info)
             handle, more = self.xfer_image_natively()
-            after(_Image(handle=handle, free=self._free), more)  # type: ignore # needs fixing
+            after(_Image(handle=handle, free=self._free, lock=self._lock, unlock=self._unlock), more)
             return more
 
         self.set_capability(
