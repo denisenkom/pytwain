@@ -84,6 +84,4 @@ def test_acquire_natively(root_window):
         logger.info("opening source")
         with sm.open_source() as ss:  # this posts a modeless dialog...
             logger.info("calling acquire_natively")
-            ss.acquire_natively(
-                after=lambda img, no: save_and_close(img)
-            )
+            ss.acquire_natively(after=lambda img, no: save_and_close(img))

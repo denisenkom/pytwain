@@ -72,16 +72,16 @@ _mapping = {
 # Corresponding states are defined in TWAIN spec 2.11 paragraph
 # Data Source Manager states
 _DsmStates = typing.Literal[
-    "closed", # TWAIN state 2
-    "open", # TWAIN state 3
+    "closed",  # TWAIN state 2
+    "open",  # TWAIN state 3
 ]
 
 # Data Source states
 _SourceStates = typing.Literal[
-    "closed", # TWAIN state 2
-    "open", # TWAIN state 4
-    "enabled", # TWAIN state 5
-    "ready", # TWAIN state 6
+    "closed",  # TWAIN state 2
+    "open",  # TWAIN state 4
+    "enabled",  # TWAIN state 5
+    "ready",  # TWAIN state 6
 ]
 
 
@@ -126,11 +126,11 @@ if sys.platform == "win32":
 
     class _Image(_IImage):
         def __init__(
-                self,
-                handle,
-                free: collections.abc.Callable[[typing.Any], None],
-                lock: collections.abc.Callable[[typing.Any], ct.c_void_p],
-                unlock: collections.abc.Callable[[typing.Any], None]
+            self,
+            handle,
+            free: collections.abc.Callable[[typing.Any], None],
+            lock: collections.abc.Callable[[typing.Any], ct.c_void_p],
+            unlock: collections.abc.Callable[[typing.Any], None],
         ):
             self._handle = handle
             self._free = free
@@ -289,7 +289,8 @@ class Source:
                         raise exceptions.CapabilityFormatNotSupported(msg)
                     ctype = _mapping[enum.ItemType]
                     item_p = ct.cast(
-                        ptr + ct.sizeof(structs.TW_ENUMERATION), ct.POINTER(ctype)  # type: ignore # needs fixing
+                        ptr + ct.sizeof(structs.TW_ENUMERATION),
+                        ct.POINTER(ctype),  # type: ignore # needs fixing
                     )
                     values = [el for el in item_p[0 : enum.NumItems]]
                     return enum.ItemType, (enum.CurrentIndex, enum.DefaultIndex, values)
@@ -300,7 +301,8 @@ class Source:
                         raise exceptions.CapabilityFormatNotSupported(msg)
                     ctype = _mapping[arr.ItemType]
                     item_p = ct.cast(
-                        ptr + ct.sizeof(structs.TW_ARRAY), ct.POINTER(ctype)  # type: ignore # needs fixing
+                        ptr + ct.sizeof(structs.TW_ARRAY),
+                        ct.POINTER(ctype),  # type: ignore # needs fixing
                     )
                     return arr.ItemType, [el for el in item_p[0 : arr.NumItems]]
                 else:
@@ -594,7 +596,9 @@ class Source:
             self._state = "ready"
         return rv, event.TWMessage
 
-    def _modal_loop(self, event_callback: collections.abc.Callable[[int], None] | None) -> None:
+    def _modal_loop(
+        self, event_callback: collections.abc.Callable[[int], None] | None
+    ) -> None:
         logger.info("entering modal loop")
         done = False
         msg = structs.MSG()
@@ -924,13 +928,20 @@ class Source:
         def xfer_ready_callback() -> int:
             before(self.image_info)
             handle, more = self.xfer_image_natively()
-            after(_Image(handle=handle, free=self._free, lock=self._lock, unlock=self._unlock), more)
+            after(
+                _Image(
+                    handle=handle, free=self._free, lock=self._lock, unlock=self._unlock
+                ),
+                more,
+            )
             return more
 
         self.set_capability(
             constants.ICAP_XFERMECH, constants.TWTY_UINT16, constants.TWSX_NATIVE
         )
-        self._acquire(xfer_ready_callback=xfer_ready_callback, show_ui=show_ui, modal=modal)
+        self._acquire(
+            xfer_ready_callback=xfer_ready_callback, show_ui=show_ui, modal=modal
+        )
 
     def is_twain2(self) -> bool:
         return self._version2
@@ -1072,7 +1083,9 @@ class Source:
         return self.xfer_image_by_file()
 
 
-def _get_protocol_major_version(requested_protocol_major_version: None | typing.Literal[1, 2]) -> typing.Literal[1, 2]:
+def _get_protocol_major_version(
+    requested_protocol_major_version: None | typing.Literal[1, 2]
+) -> typing.Literal[1, 2]:
     if requested_protocol_major_version not in [None, 1, 2]:
         raise ValueError("Invalid protocol version specified")
     if utils.is_windows():
@@ -1082,7 +1095,9 @@ def _get_protocol_major_version(requested_protocol_major_version: None | typing.
     return 2 or requested_protocol_major_version
 
 
-def _get_dsm(dsm_name: str | None, protocol_major_version: typing.Literal[1, 2]) -> ct.CDLL:
+def _get_dsm(
+    dsm_name: str | None, protocol_major_version: typing.Literal[1, 2]
+) -> ct.CDLL:
     """
     Loads TWAIN Data Source Manager DLL.
     If dsm_name parameter is set will load that exact DSM DLL.
@@ -1163,7 +1178,7 @@ class SourceManager:
         """
         self._sources: weakref.WeakSet[Source] = weakref.WeakSet()
         self._cb: collections.abc.Callable[[int], None] | None = None
-        self._state : _DsmStates = "closed"
+        self._state: _DsmStates = "closed"
         self._parent_window = parent_window
         self._hwnd = 0
         if utils.is_windows():
@@ -1307,7 +1322,8 @@ class SourceManager:
             )
             if rv != constants.TWRC_SUCCESS:
                 logger.warning(
-                    "Getting additional error information returned non success code: %d", rv
+                    "Getting additional error information returned non success code: %d",
+                    rv,
                 )
                 raise exceptions.TwainError()
             code = status.ConditionCode
@@ -1563,5 +1579,5 @@ def acquire(
 
 
 # import all constants for backward compatibility
-from .lowlevel.constants import * # noqa
+from .lowlevel.constants import *  # noqa
 from .windows import *  # noqa
