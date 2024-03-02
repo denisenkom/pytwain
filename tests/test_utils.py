@@ -1,3 +1,4 @@
+import os
 import twain.utils
 
 from PIL import Image
@@ -8,7 +9,7 @@ def test_bitmap_conversion():
     Test device independent bitmap in-memory conversion
     """
     # Create test image
-    test_image_path = "SMPTE_Color_Bars.bmp"
+    test_image_path = os.path.join(os.path.dirname(__file__), "SMPTE_Color_Bars.bmp")
     img = Image.open(test_image_path)
     print(img.mode)
     # Load it as raw bytes
