@@ -91,5 +91,5 @@ class MainWindow(Frame, TwainBase):
         self.after(250, self.OnIdleTimer)
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 MainWindow(TITLE).mainloop()

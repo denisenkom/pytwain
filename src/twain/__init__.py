@@ -1307,7 +1307,9 @@ class SourceManager:
         buf: typing.Any,
         expected_returns: tuple[int, ...] = (),
     ) -> int:
+        logger.debug("Calling TWAIN (%s,%d,%d,%d)", dest_id, dg, dat, msg)
         rv = self._entry(self._app_id, dest_id, dg, dat, msg, buf)
+        logger.debug("TWAIN returned: %d", rv)
         if rv == constants.TWRC_SUCCESS or rv in expected_returns:
             return rv
         if rv == constants.TWRC_FAILURE:
